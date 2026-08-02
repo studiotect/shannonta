@@ -1,0 +1,39 @@
+name: Pass 1 Scan
+
+on:
+  schedule:
+    # 11:00 PM UTC ≈ 6/7 PM ET depending on DST — comfortable margin after the
+    # 4 PM ET close year-round so Polygon has finalized the day's EOD data.
+    # Runs weekdays only; the script itself also skips weekends/holidays safely.
+    - cron: '0 23 * * 1-5'
+  workflow_dispatch: {}   # lets you trigger it manually from the Actions tab
+
+permissions:
+  contents: write
+
+concurrency:
+  group: pass1-scan
+  cancel-in-progress: false
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Run Pass 1 scan
+        env:
+          POLYGON_API_KEY: ${{ secrets.POLYGON_API_KEY }}
+        run: node scripts/pass1-scan.mjs
+
+      - name: Commit updated data
+        run: |
+          git config user.name "shannonta-bot"
+          git config user.email "actions@github.com"
+          git add data/
+          git diff --cached --quiet || git commit -m "Pass 1 scan: $(date -u +%Y-%m-%d)"
+          git push
