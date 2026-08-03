@@ -152,8 +152,9 @@ function runFilters(history) {
     const rvolOk = rvol != null && rvol > 1.2;
     const trendOk = trend != null && trend > 0.25;
 
-    // Loose OR filter for Pass 1 — tighten once you see how many survive.
-    if (priceVsMA || rvolOk || trendOk) {
+    // Require at least 2 of 3 conditions filter for Pass 1 — tighten once you see how many survive.
+    const passCount = [priceVsMA, rvolOk, trendOk].filter(Boolean).length;
+    if (passCount >= 2) {
       survivors.push({ t: ticker, close, ma20, ma50, rvol, trend });
     }
   }
