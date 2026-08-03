@@ -161,9 +161,69 @@ function runFilters(history) {
   return survivors;
 }
 
+// Find universe tickers that don't have enough history yet — e.g. tickers
+// added when the universe was expanded. datesToBackfill() only looks at the
+// *latest* date across existing history and won't catch this: if the rest
+// of the universe is already caught up to yesterday, it'll compute an empty
+// catch-up range and these new tickers get silently skipped forever.
+function tickersNeedingBackfill(universe, history, minBars) {
+  const needs = new Set();
+  if (!universe) return needs;
+  for (const t of universe) {
+    const rows = history[t];
+    if (!rows || rows.length < minBars) needs.add(t);
+  }
+  return needs;
+}
+
+async function backfillNewTickers(needBackfill, history) {
+  console.log(`${needBackfill.size} ticker(s) missing sufficient history — running a full ${LOOKBACK_DAYS}-day backfill for just these (one-time cost; ~${Math.round(LOOKBACK_DAYS * 5 / 7 * RATE_LIMIT_MS / 60000)} min at current rate limit).`);
+
+  const start = new Date();
+  start.setUTCDate(start.getUTCDate() - LOOKBACK_DAYS);
+  const yesterday = new Date();
+  yesterday.setUTCDate(yesterday.getUTCDate() - 1);
+
+  const cursor = new Date(start);
+  while (cursor <= yesterday) {
+    if (isWeekday(cursor)) {
+      const dateStr = fmtDate(cursor);
+      console.log(`Backfill fetch ${dateStr} (new tickers only)...`);
+      const rows = await fetchGroupedDay(dateStr);
+      if (rows) {
+        for (const r of rows) {
+          if (!needBackfill.has(r.T)) continue;
+          if (!history[r.T]) history[r.T] = [];
+          if (history[r.T].some(row => row.d === dateStr)) continue; // avoid dupes on re-run
+          history[r.T].push({ d: dateStr, o: r.o, h: r.h, l: r.l, c: r.c, v: r.v });
+        }
+      } else {
+        console.log(`  (no session — market closed)`);
+      }
+      await wait(RATE_LIMIT_MS);
+    }
+    cursor.setUTCDate(cursor.getUTCDate() + 1);
+  }
+
+  // Grouped-daily calls above are already chronological, but sort defensively.
+  for (const t of needBackfill) {
+    if (history[t]) history[t].sort((a, b) => a.d.localeCompare(b.d));
+  }
+}
+
 async function main() {
   const universe = await loadUniverse();
   const history = await loadHistory();
+
+  const needBackfill = tickersNeedingBackfill(universe, history, 55);
+  if (needBackfill.size > 0) {
+    await backfillNewTickers(needBackfill, history);
+    // Save progress immediately — this pass can take a while, and we don't
+    // want to lose a near-complete backfill if the incremental step below fails.
+    await fs.mkdir('data', { recursive: true });
+    await fs.writeFile(HISTORY_PATH, JSON.stringify(history));
+  }
+
   const dates = datesToBackfill(history);
 
   console.log(`Backfilling ${dates.length} session(s)...`);
