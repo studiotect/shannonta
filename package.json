@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "csv-parse": "^7.0.2",
+    "fast-xml-parser": "^5.10.1"
+  }
+}
