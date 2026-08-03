@@ -1,0 +1,22 @@
+name: Update Universe
+on:
+  schedule:
+    - cron: '0 12 * * 1'   # Mondays, 12:00 UTC
+  workflow_dispatch: {}
+
+jobs:
+  update-universe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install
+      - run: node scripts/fetch-universe-sec.mjs
+      - run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add data/universe.json data/universe-meta.json
+          git diff --staged --quiet || git commit -m "Weekly universe refresh"
+          git push
