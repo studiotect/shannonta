@@ -152,9 +152,10 @@ function runFilters(history) {
     const rvolOk = rvol != null && rvol > 1.2;
     const trendOk = trend != null && trend > 0.25;
 
-    // Require at least 2 of 3 conditions filter for Pass 1 — tighten once you see how many survive.
+    // Require all 3 conditions — 2-of-3 let too much through against the full
+    // 2500+ universe (546 survivors vs. the ~100-300 target).
     const passCount = [priceVsMA, rvolOk, trendOk].filter(Boolean).length;
-    if (passCount >= 2) {
+    if (passCount === 3) {
       survivors.push({ t: ticker, close, ma20, ma50, rvol, trend });
     }
   }
