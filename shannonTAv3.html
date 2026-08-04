@@ -1,0 +1,1879 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#0D1117">
+<title>ShannonTA</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0D1117;--surf:#161B22;--surf2:#21262D;--bdr:#30363D;
+  --txt:#E6EDF3;--txt2:#8B949E;--txt3:#484F58;
+  --green:#3FB950;--red:#F85149;--amber:#D29922;--blue:#58A6FF;--purp:#7C3AED;
+  --s1:#7C3AED;--s2:#3FB950;--s3:#D29922;--s4:#F85149;
+  --mono:'Space Mono',monospace;--sans:'Space Grotesk',system-ui,sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--sans);background:var(--bg);color:var(--txt);min-height:100dvh;
+  overscroll-behavior:none;-webkit-tap-highlight-color:transparent}
+
+/* HEADER */
+.hdr{position:sticky;top:0;z-index:50;background:var(--bg);border-bottom:1px solid var(--bdr);
+  padding:10px 14px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.hdr-left{display:flex;flex-direction:column;gap:1px}
+.logo{font-size:16px;font-weight:700;letter-spacing:-.4px}
+.logo em{color:var(--green);font-style:normal}
+.clock{font-family:var(--mono);font-size:9px;color:var(--txt3)}
+.hdr-right{display:flex;gap:7px;align-items:center}
+.ibtn{height:34px;min-width:34px;padding:0 8px;display:flex;align-items:center;justify-content:center;
+  background:var(--surf2);border:1px solid var(--bdr);border-radius:8px;cursor:pointer;
+  color:var(--txt2);font-size:11px;font-weight:700;gap:4px;transition:.15s;flex-shrink:0}
+.ibtn:active{background:var(--bdr);color:var(--txt)}
+.ibtn svg{width:15px;height:15px;flex-shrink:0}
+
+/* TABS */
+.tabs{display:flex;border-bottom:1px solid var(--bdr)}
+.tab{flex:1;padding:9px 4px;font-size:11px;font-weight:600;color:var(--txt3);
+  text-align:center;cursor:pointer;border-bottom:2px solid transparent;
+  text-transform:uppercase;letter-spacing:.5px;transition:.15s}
+.tab.on{color:var(--txt);border-color:var(--green)}
+
+/* MAIN */
+.main{padding:10px 10px 32px;display:flex;flex-direction:column;gap:9px}
+
+/* BANNER */
+.banner{padding:9px 13px;border-radius:8px;font-size:11px;line-height:1.5;display:none}
+.banner.show{display:block}
+.banner.info{background:rgba(210,153,34,.1);border:1px solid rgba(210,153,34,.3);color:var(--amber)}
+.banner.err{background:rgba(248,81,73,.08);border:1px solid rgba(248,81,73,.25);color:var(--red)}
+.banner.ok{background:rgba(63,185,80,.08);border:1px solid rgba(63,185,80,.25);color:var(--green)}
+
+/* CARD */
+.card{background:var(--surf);border:1px solid var(--bdr);border-radius:12px;overflow:hidden;transition:border-color .3s}
+.card.buy-glow{border-color:rgba(63,185,80,.4)}
+.card.sell-glow{border-color:rgba(248,81,73,.4)}
+.ctop{display:flex;align-items:flex-start;justify-content:space-between;padding:13px 13px 9px}
+.ctl{display:flex;align-items:flex-start;gap:7px}
+.seq{width:18px;height:18px;border-radius:50%;background:var(--surf2);border:1px solid var(--bdr);
+  font-family:var(--mono);font-size:9px;font-weight:700;color:var(--txt3);
+  display:flex;align-items:center;justify-content:center;margin-top:3px;flex-shrink:0}
+.ticker{font-family:var(--mono);font-size:21px;font-weight:700;letter-spacing:-.5px}
+.cname{font-size:10px;color:var(--txt3);margin-top:2px}
+.price{font-family:var(--mono);font-size:21px;font-weight:700;text-align:right}
+.pchg{font-family:var(--mono);font-size:11px;margin-top:2px;text-align:right}
+.up{color:var(--green)}.dn{color:var(--red)}.flat{color:var(--txt3)}
+
+/* TF TABS */
+.tf-tabs{display:flex;gap:6px;padding:0 13px 11px}
+.tf-tab{flex:1;padding:5px 8px;border-radius:7px;border:1px solid var(--bdr);
+  background:var(--surf2);font-size:11px;font-weight:700;text-align:center;
+  cursor:pointer;transition:.15s;display:flex;align-items:center;justify-content:center;gap:5px}
+.tf-tab.on-d{border-color:var(--blue);color:var(--blue)}
+.tf-tab.on-w{border-color:var(--purp);color:var(--purp)}
+.tf-section{display:none}
+.tf-section.vis{display:block}
+.divg{margin:0 13px 10px;padding:7px 10px;border-radius:7px;font-size:10px;color:var(--amber);
+  background:rgba(210,153,34,.1);border:1px solid rgba(210,153,34,.3)}
+
+/* SIGNAL ROW */
+.sigrow{display:flex;align-items:center;gap:9px;padding:0 13px 11px}
+.sbadge{padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;
+  letter-spacing:.6px;text-transform:uppercase;white-space:nowrap;flex-shrink:0}
+.s-sb{background:rgba(63,185,80,.15);color:#3FB950;border:1px solid rgba(63,185,80,.3)}
+.s-b{background:rgba(86,211,100,.1);color:#56D364;border:1px solid rgba(86,211,100,.25)}
+.s-n{background:rgba(210,153,34,.12);color:#D29922;border:1px solid rgba(210,153,34,.3)}
+.s-s{background:rgba(240,136,62,.12);color:#F0883E;border:1px solid rgba(240,136,62,.3)}
+.s-ss{background:rgba(248,81,73,.12);color:#F85149;border:1px solid rgba(248,81,73,.3)}
+.s-ld{background:var(--surf2);color:var(--txt3);border:1px solid var(--bdr)}
+.scwrap{flex:1}
+.sclbl{font-size:9px;color:var(--txt3);letter-spacing:.4px;text-transform:uppercase;margin-bottom:4px}
+.sctrk{height:4px;background:var(--surf2);border-radius:2px;overflow:hidden}
+.scfill{height:100%;border-radius:2px;transition:width .5s}
+
+/* STAGE METER */
+.stgwrap{padding:0 13px 13px}
+.stglbls{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.stglbl{font-size:9px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--txt3)}
+.stglbl.on{color:var(--txt2)}
+.stgname{font-size:10px;font-weight:600}
+.stgtrk{position:relative;height:8px;border-radius:4px;overflow:visible;display:flex}
+.seg{height:100%;flex:1}
+.seg:first-child{border-radius:4px 0 0 4px}
+.seg:last-child{border-radius:0 4px 4px 0}
+.seg.dim{opacity:.18}.seg.on{opacity:1}
+.seg1{background:var(--s1)}.seg2{background:var(--s2)}.seg3{background:var(--s3)}.seg4{background:var(--s4)}
+.stgdot{position:absolute;top:50%;transform:translateY(-50%);width:14px;height:14px;
+  border-radius:50%;border:2.5px solid var(--surf);box-shadow:0 0 6px rgba(0,0,0,.6);
+  transition:left .5s;pointer-events:none}
+
+/* SUB SIGNALS */
+.subs{display:grid;grid-template-columns:1fr 1fr;gap:5px;padding:9px 13px 13px;border-top:1px solid var(--bdr)}
+.sub{background:var(--surf2);border-radius:8px;padding:8px 10px;display:flex;flex-direction:column;gap:3px}
+.slbl{font-size:9px;font-weight:600;color:var(--txt3);text-transform:uppercase;letter-spacing:.4px}
+.sval{font-family:var(--mono);font-size:12px;font-weight:700}
+.snot{font-size:9px;color:var(--txt3)}
+.bull{color:var(--green)}.bear{color:var(--red)}.warn{color:var(--amber)}.muted{color:var(--txt2)}
+
+/* TRADE BOX */
+.trade{margin:0 13px 13px;border:1px solid var(--bdr);border-radius:10px;overflow:hidden}
+.thdr{padding:7px 11px;font-size:9px;font-weight:700;letter-spacing:.6px;
+  text-transform:uppercase;display:flex;align-items:center;justify-content:space-between}
+.thdr.long{background:rgba(63,185,80,.1);color:var(--green)}
+.thdr.short{background:rgba(248,81,73,.1);color:var(--red)}
+.thdr.none{background:var(--surf2);color:var(--txt3)}
+.tnote{font-size:9px;font-weight:400;color:var(--txt3)}
+.tgrid{display:grid;grid-template-columns:1fr 1fr 1fr;border-top:1px solid var(--bdr)}
+.tcell{padding:9px 10px;display:flex;flex-direction:column;gap:3px}
+.tcell+.tcell{border-left:1px solid var(--bdr)}
+.tclbl{font-size:9px;font-weight:600;color:var(--txt3);text-transform:uppercase;letter-spacing:.4px}
+.tcval{font-family:var(--mono);font-size:13px;font-weight:700}
+.tcsub{font-size:9px;color:var(--txt3)}
+.rrrow{border-top:1px solid var(--bdr);padding:7px 11px;display:flex;align-items:center;gap:7px}
+.rrlbl{font-size:10px;white-space:nowrap}
+.rrtrk{flex:1;height:4px;background:var(--surf2);border-radius:2px;overflow:hidden}
+.rrfill{height:100%;border-radius:2px}
+.rrt2{font-family:var(--mono);font-size:10px;color:var(--txt2);white-space:nowrap}
+.tna{padding:9px 11px;font-size:11px;color:var(--txt3);font-style:italic}
+
+/* DETAIL */
+.expdr{display:flex;align-items:center;justify-content:center;gap:5px;padding:7px;
+  border-top:1px solid var(--bdr);font-size:11px;color:var(--txt3);cursor:pointer;transition:.15s}
+.expdr:active{background:var(--surf2)}
+.earr{font-size:10px;transition:transform .2s}
+.card.open .earr{transform:rotate(180deg)}
+.detail{display:none;padding:13px;border-top:1px solid var(--bdr);background:var(--bg)}
+.card.open .detail{display:block}
+.dtit{font-size:10px;font-weight:700;color:var(--txt3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:7px}
+.matable{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:11px;margin-bottom:13px}
+.matable th{font-family:var(--sans);font-size:9px;color:var(--txt3);text-transform:uppercase;
+  letter-spacing:.4px;text-align:left;padding:0 0 5px}
+.matable td{padding:5px 0;color:var(--txt2);border-bottom:1px solid var(--bdr)}
+.matable td:last-child{text-align:right}
+.pills{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:13px}
+.pill{padding:3px 8px;border-radius:20px;font-size:10px;font-weight:600;
+  background:var(--surf2);border:1px solid var(--bdr);color:var(--txt2)}
+.pill.ok{background:rgba(63,185,80,.1);color:var(--green);border-color:rgba(63,185,80,.25)}
+.pill.bad{background:rgba(248,81,73,.1);color:var(--red);border-color:rgba(248,81,73,.25)}
+.pill.mid{background:rgba(210,153,34,.1);color:var(--amber);border-color:rgba(210,153,34,.25)}
+.chart-wrap{margin:0 0 13px;border-radius:10px;overflow:hidden;background:var(--bg);border:1px solid var(--bdr)}
+.chart-btn{display:flex;align-items:center;justify-content:center;gap:5px;padding:7px 13px;
+  font-size:11px;color:var(--txt3);cursor:pointer;border-top:1px solid var(--bdr);transition:.15s}
+.chart-btn:active{background:var(--surf2)}
+.chart-btn.open .chart-arr{transform:rotate(180deg)}
+.chart-arr{font-size:10px;transition:transform .2s}
+.chart-svg-wrap{display:none;padding:0;overflow:hidden}
+.chart-btn.open + .chart-svg-wrap{display:block}
+.snote{font-size:11px;color:var(--txt2);line-height:1.6;padding:9px 11px;border-radius:8px;
+  background:var(--surf2);border-left:3px solid var(--purp);font-style:italic;margin-bottom:7px}
+.snote.act{border-left-color:var(--amber)}
+
+/* SIGNALS VIEW */
+.sigview{padding:10px}
+.sv-card{background:var(--surf);border:1px solid var(--bdr);border-radius:12px;overflow:hidden;margin-bottom:9px}
+.sv-hdr{padding:11px 13px;border-bottom:1px solid var(--bdr);font-size:11px;font-weight:700;
+  color:var(--txt2);text-transform:uppercase;letter-spacing:.5px}
+.sv-row{display:flex;align-items:center;justify-content:space-between;padding:10px 13px;
+  border-bottom:1px solid var(--bdr);cursor:pointer;transition:.15s}
+.sv-row:last-child{border-bottom:none}
+.sv-row:active{background:var(--surf2)}
+.sv-ticker{font-family:var(--mono);font-size:14px;font-weight:700}
+.sv-stage{font-size:10px;margin-top:2px}
+.sv-right{display:flex;align-items:center;gap:8px}
+.sv-price{font-family:var(--mono);font-size:12px;color:var(--txt2)}
+.distbar{display:flex;height:5px;border-radius:3px;overflow:hidden;margin:0 13px 11px}
+
+/* OVERLAYS */
+.overlay{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.7);
+  backdrop-filter:blur(4px);display:flex;align-items:flex-end;
+  opacity:0;pointer-events:none;transition:opacity .2s}
+.overlay.open{opacity:1;pointer-events:auto}
+.sheet{width:100%;background:var(--surf);border-top:1px solid var(--bdr);
+  border-radius:20px 20px 0 0;padding:18px 18px 52px;max-height:88dvh;overflow-y:auto;
+  transform:translateY(100%);transition:transform .25s}
+.overlay.open .sheet{transform:translateY(0)}
+.shandle{width:40px;height:4px;background:var(--bdr);border-radius:2px;margin:0 auto 18px}
+.stitle{font-size:17px;font-weight:700;margin-bottom:18px}
+.fld{margin-bottom:16px}
+.flbl{display:block;font-size:11px;font-weight:600;color:var(--txt2);
+  text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.finp{width:100%;background:var(--bg);border:1px solid var(--bdr);border-radius:8px;
+  color:var(--txt);font-family:var(--mono);font-size:13px;padding:10px 12px;outline:none;transition:.15s}
+.finp:focus{border-color:var(--green)}
+.fhint{font-size:10px;color:var(--txt3);margin-top:5px;line-height:1.5}
+.btn-save{width:100%;background:var(--green);color:#000;font-family:var(--sans);
+  font-size:14px;font-weight:700;padding:13px;border-radius:9px;border:none;
+  cursor:pointer;margin-bottom:8px;transition:.15s}
+.btn-save:active{opacity:.85}
+.btn-cancel{width:100%;background:var(--surf2);color:var(--txt2);font-family:var(--sans);
+  font-size:13px;font-weight:600;padding:12px;border-radius:9px;border:1px solid var(--bdr);cursor:pointer}
+.btn-cancel:active{background:var(--bdr)}
+
+/* WATCHLIST CHIPS */
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:9px}
+.chip{display:flex;align-items:center;gap:5px;border-radius:7px;border:1px solid var(--bdr);
+  padding:5px 8px;background:var(--surf2);font-family:var(--mono);font-size:12px;font-weight:700;color:var(--txt2)}
+.chip-num{font-size:9px;color:var(--txt3)}
+.chip-rm{font-size:15px;color:var(--txt3);line-height:1;cursor:pointer;margin-left:2px}
+.chip-rm:hover{color:var(--red)}
+.add-row{display:flex;gap:7px}
+.load-preview{font-size:10px;color:var(--txt3);background:var(--surf2);border:1px solid var(--bdr);
+  border-radius:7px;padding:8px 10px;margin-top:8px;line-height:1.7}
+.load-preview strong{color:var(--txt2)}
+
+/* KEY SLOTS */
+.key-slots{display:flex;flex-direction:column;gap:10px;margin-bottom:14px}
+.key-slot{display:flex;gap:8px;align-items:center}
+.key-slot-lbl{font-size:11px;font-weight:700;color:var(--txt2);white-space:nowrap;min-width:44px}
+.key-slot-inp{flex:1}
+.key-slot-rm{width:32px;height:32px;display:flex;align-items:center;justify-content:center;
+  background:var(--surf2);border:1px solid var(--bdr);border-radius:7px;
+  color:var(--txt3);cursor:pointer;font-size:16px;flex-shrink:0}
+.key-slot-rm:active{background:rgba(248,81,73,.15);color:var(--red)}
+
+/* UTILS */
+@keyframes spin{to{transform:rotate(360deg)}}
+.spin{width:13px;height:13px;border:2px solid var(--bdr);border-top-color:var(--green);
+  border-radius:50%;animation:spin .7s linear infinite;display:inline-block;flex-shrink:0}
+@keyframes pulse{0%,100%{opacity:.35}50%{opacity:.65}}
+.pulsing{animation:pulse 1.5s ease-in-out infinite}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="hdr">
+  <div class="hdr-left">
+    <div class="logo">Shannon<em>TA</em></div>
+    <div class="clock" id="clock">—</div>
+  </div>
+  <div class="hdr-right">
+    <div class="ibtn" onclick="stopLoad()" id="stopBtn" style="display:none;color:var(--amber)">⏹</div>
+    <div class="ibtn" onclick="startLoad()" id="startBtn" style="color:var(--green)" title="Start">▶</div>
+    <div class="ibtn" onclick="clearData()" title="Clear data">🗑</div>
+    <div class="ibtn" onclick="renderWatchlist();startLoad();" id="refreshBtn" title="Refresh">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+        <path d="M1 4v6h6M23 20v-6h-6"/>
+        <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4-4.64 4.36A9 9 0 0 1 3.51 15"/>
+      </svg>
+    </div>
+    <div class="ibtn" onclick="openKM()">🔑 Keys</div>
+    <div class="ibtn" onclick="openSettings()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+      </svg>
+    </div>
+  </div>
+</header>
+
+<!-- TABS -->
+<div class="tabs">
+  <div class="tab on" onclick="switchView('wl')">Watchlist</div>
+  <div class="tab"    onclick="switchView('sig')">Signals</div>
+</div>
+
+<!-- MAIN -->
+<div id="wlMain" class="main">
+  <div class="banner" id="banner"></div>
+  <div id="cards"></div>
+</div>
+<div id="sigMain" style="display:none">
+  <div class="sigview" id="sigContent"></div>
+</div>
+
+<!-- KEY MANAGER OVERLAY -->
+<div class="overlay" id="kmOverlay" onclick="if(event.target===this)closeKM()">
+  <div class="sheet">
+    <div class="shandle"></div>
+    <div class="stitle">API Keys</div>
+    <div class="fhint" style="margin-bottom:14px">
+      Free keys at <a href="https://twelvedata.com" target="_blank" style="color:var(--blue)">twelvedata.com</a>
+      · 8 credits/min · 800/day · each stock costs 2 credits<br>
+      Add up to 4 keys. Each key loads its own batch simultaneously.
+    </div>
+    <div class="key-slots" id="keySlots"></div>
+    <button class="btn-save" onclick="saveKeys()">Save Keys</button>
+    <button class="btn-cancel" onclick="closeKM()">Cancel</button>
+  </div>
+</div>
+
+<!-- SETTINGS OVERLAY -->
+<div class="overlay" id="settingsOverlay" onclick="if(event.target===this)closeSettings()">
+  <div class="sheet">
+    <div class="shandle"></div>
+    <div class="stitle">Settings</div>
+    <div class="fld">
+      <label class="flbl">Watchlist
+        <span style="color:var(--txt3);font-weight:400;text-transform:none;letter-spacing:0">
+          (ordered top to bottom · up to 300 tickers)
+        </span>
+      </label>
+      <div class="chips" id="chipsWrap"></div>
+      <div class="add-row">
+        <input class="finp" id="tickerIn" type="text" placeholder="Add ticker…"
+               style="text-transform:uppercase" maxlength="8"
+               onkeydown="if(event.key==='Enter')addTicker()">
+        <button class="btn-save" style="width:auto;padding:10px 16px;margin:0" onclick="addTicker()">Add</button>
+      </div>
+      <div class="load-preview" id="loadPreview"></div>
+    </div>
+    <div class="fld">
+      <label class="flbl">Pass 1 Survivors</label>
+      <button class="btn-save" style="margin:0;font-size:12px" onclick="loadPass1Survivors()" id="pass1Btn">⟳ Load Pass 1 Survivors</button>
+      <div class="fhint" id="pass1Status">Not loaded yet.</div>
+    </div>
+    <div class="fld">
+      <label class="flbl">CSV Import / Export</label>
+      <div class="add-row" style="gap:8px">
+        <button class="btn-save" style="margin:0;flex:1;font-size:12px" onclick="exportCSV()">⬇ Export CSV</button>
+        <label class="btn-save" style="margin:0;flex:1;font-size:12px;text-align:center;cursor:pointer">
+          ⬆ Import CSV
+          <input type="file" accept=".csv" style="display:none" onchange="importCSV(this)">
+        </label>
+      </div>
+      <div class="fhint">Export saves current watchlist as a CSV. Import replaces watchlist from a CSV file with a "ticker" column — or just a single column of ticker symbols.</div>
+    </div>
+    <button class="btn-save" onclick="saveSettings()">Save</button>
+    <button class="btn-cancel" onclick="closeSettings()">Cancel</button>
+  </div>
+</div>
+
+<script>
+'use strict';
+// ═══════════════════════════════════════════════════════════
+//  CONSTANTS
+// ═══════════════════════════════════════════════════════════
+const TD    = 'https://api.twelvedata.com';
+const NAMES = {
+  RKLB:'Rocket Lab USA',QS:'QuantumScape',AUR:'Aurora Innovation',
+  CEG:'Constellation Energy',CRDO:'Credo Technology',MU:'Micron Technology',
+  IONQ:'IonQ',RDW:'Redwire Corp',SMR:'NuScale Power',OKLO:'Oklo Inc',
+  ASTS:'AST SpaceMobile',NVDA:'NVIDIA',MSFT:'Microsoft',PLTR:'Palantir',
+  TSLA:'Tesla',AAPL:'Apple',AMZN:'Amazon',MRVL:'Marvell Technology',
+};
+const SC = ['','var(--s1)','var(--s2)','var(--s3)','var(--s4)'];
+const SN = ['—','Accumulation','Markup ↑','Distribution','Decline ↓'];
+const MAX_KEYS = 4;
+const MAX_TICKERS = 300; // sized for Pass 2 survivor lists (100–300 names)
+// Pass 1's daily survivor list, committed to the repo by the GitHub Actions
+// scan and served straight off raw.githubusercontent.com — no GitHub Pages
+// needed, it already sends Access-Control-Allow-Origin: * so the browser
+// can fetch it directly. Cache-busted with a query param since GitHub's
+// edge caches this for ~5 minutes.
+const PASS1_URL = 'https://raw.githubusercontent.com/studiotect/shannonta/main/data/pass1.json';
+
+// ═══════════════════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════════════════
+const ST = {
+  apiKeys:    [],   // [{key, label}]
+  tickers:    ['RKLB','QS','AUR','CEG','CRDO','MU','IONQ','RDW'],
+  data:       {},   // ticker -> {ok, daily, weekly, ts} | {ok:false, err, ts}
+  activeTabs: {},   // ticker -> 'daily'|'weekly'
+  loading:    false,
+  stopFlag:   false,
+  pass1Meta:  null,  // {asOf, universeSize, survivorCount, loadedAt} | null
+};
+
+const keys = () => ST.apiKeys.map(k=>k.key).filter(Boolean);
+
+// ── Persistence ───────────────────────────────────────────
+function loadState() {
+  try {
+    const p = JSON.parse(localStorage.getItem('shannonTA') || '{}');
+    if (p.apiKeys) ST.apiKeys = p.apiKeys;
+    if (p.tickers) {
+      // Migrate old {t:'RKLB',pinned:true} format to plain strings
+      ST.tickers = p.tickers.map(x => typeof x === 'object' ? x.t : x).filter(Boolean);
+    }
+    if (p.pass1Meta) ST.pass1Meta = p.pass1Meta;
+  } catch(e) {}
+  try {
+    const p = JSON.parse(sessionStorage.getItem('shannonTA_data') || '{}');
+    const cutoff = Date.now() - 10 * 60 * 1000;
+    for (const [k,v] of Object.entries(p)) {
+      if (v.ts > cutoff) ST.data[k] = v;
+    }
+  } catch(e) {}
+}
+
+function saveState() {
+  try { localStorage.setItem('shannonTA', JSON.stringify({apiKeys:ST.apiKeys, tickers:ST.tickers, pass1Meta:ST.pass1Meta})); } catch(e) {}
+  try { sessionStorage.setItem('shannonTA_data', JSON.stringify(ST.data)); } catch(e) {}
+}
+
+// ═══════════════════════════════════════════════════════════
+//  FETCH — Twelve Data batch approach
+// ═══════════════════════════════════════════════════════════
+// Twelve Data rate limit: 8 credits/min per key (fixed window, resets at :00)
+// Each symbol costs 1 credit. /quote and /api_usage also cost credits.
+// We only call /time_series (daily + weekly). Quotes derived from candles.
+// Multiple keys run their own batches in parallel — no shared state.
+
+const wait = ms => new Promise(r => setTimeout(r, ms));
+const el   = id => document.getElementById(id);
+
+async function timedFetch(url, ms=30000) {
+  return new Promise((res,rej) => {
+    const t = setTimeout(() => rej(new Error(`Timeout after ${ms/1000}s`)), ms);
+    fetch(url).then(r=>{clearTimeout(t);res(r);}).catch(e=>{clearTimeout(t);rej(e);});
+  });
+}
+
+// Fetch time_series for multiple tickers in one request (1 credit per symbol)
+async function batchTimeSeries(apiKey, tickers, interval) {
+  const url = `${TD}/time_series?symbol=${tickers.join(',')}&interval=${interval}&outputsize=${interval==='1day'?252:104}&apikey=${apiKey}`;
+  let res = await timedFetch(url);
+  if (res.status === 429) {
+    // Rate limited — wait for next :00 reset and retry once
+    const ms = 60000 - (Date.now() % 60000) + 1000;
+    setStatus(`Rate limit — retrying in ${Math.ceil(ms/1000)}s…`);
+    await wait(ms);
+    res = await timedFetch(url);
+  }
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const j = await res.json();
+  if (j.status === 'error') throw new Error(j.message || 'API error');
+  const parse = vals => vals.slice().reverse().map(v=>({
+    o:+v.open, h:+v.high, l:+v.low, c:+v.close, v:+(v.volume||0)
+  }));
+  // Single ticker: response is {meta, values}
+  // Multiple tickers: response is {TICKER: {meta, values}, ...}
+  if (tickers.length === 1) {
+    if (!j.values?.length) throw new Error(`No data for ${tickers[0]}`);
+    return { [tickers[0]]: parse(j.values) };
+  }
+  const result = {};
+  for (const t of tickers) {
+    result[t] = j[t]?.values?.length ? parse(j[t].values) : null;
+  }
+  return result;
+}
+
+// Derive price/change from the last two daily candles — no extra API call needed.
+// /quote costs 1 credit per symbol — we save those credits for data instead.
+function quotesFromCandles(dailyData) {
+  const result = {};
+  for (const [t, candles] of Object.entries(dailyData)) {
+    if (!candles?.length) continue;
+    const last = candles[candles.length - 1];
+    const prev = candles.length >= 2 ? candles[candles.length - 2] : null;
+    const change = prev ? last.c - prev.c : 0;
+    const pct    = prev?.c ? (change / prev.c) * 100 : 0;
+    result[t] = {close: last.c, change, pct};
+  }
+  return result;
+}
+
+// Live clock — counts down to next Twelve Data credit reset (:00 each minute)
+function startClock() {
+  function tick() {
+    const now = new Date();
+    const t   = now.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+    const sec = 60 - now.getSeconds();
+    const clk = el('clock');
+    if (clk) clk.textContent = `${t} · reset in ${sec}s`;
+  }
+  tick();
+  setInterval(tick, 1000);
+}
+
+
+
+// ═══════════════════════════════════════════════════════════
+//  LOAD — one batch per key, all in parallel, no scheduling
+// ═══════════════════════════════════════════════════════════
+// Each key gets a slice of tickers. All keys fire simultaneously.
+// Within each key: daily batch → weekly batch → quotes → render.
+// No gaps, no stagger, no credit tracking — just fetch and go.
+// If you hit 429s, add more keys or reduce tickers per key.
+
+// ── SCHEDULER ────────────────────────────────────────────
+// Rules:
+//   • Max 4 tickers per key per minute window (4 daily + 4 weekly = 8 credits)
+//   • Each minute window: fire daily for 4 tickers, then weekly for 4 tickers
+//   • Wait for next :00 boundary before starting next round
+//   • Multiple keys fire simultaneously — each has its own 4-ticker slot
+//   • Any ticker that errors is retried in the next available round
+//   • Up to 300 tickers supported (Pass 2 survivor-list scale)
+
+const TICKERS_PER_KEY_PER_MIN = 4;
+
+// Wait until the next :00 minute boundary + 500ms safety margin
+async function waitForNextMinute(label) {
+  const ms = 60000 - (Date.now() % 60000) + 500;
+  setStatus(`${label}Waiting for credit reset — ${Math.ceil(ms/1000)}s…`);
+  await wait(ms);
+}
+
+// Load one round of tickers for one key (max 4 tickers = 8 credits)
+// Returns list of tickers that failed and should be retried
+async function loadRound(apiKey, tickers, label) {
+  const failed = [];
+  let daily = {}, weekly = {};
+
+  // Daily batch
+  try {
+    setStatus(`${label} · daily (${tickers.join(', ')})…`);
+    daily = await batchTimeSeries(apiKey, tickers, '1day');
+  } catch(e) {
+    // Whole daily call failed — mark all as failed for retry
+    tickers.forEach(t => failed.push(t));
+    return failed;
+  }
+  if (ST.stopFlag) return failed;
+
+  // Weekly batch — credits still available in same minute window
+  try {
+    setStatus(`${label} · weekly (${tickers.join(', ')})…`);
+    weekly = await batchTimeSeries(apiKey, tickers, '1week');
+  } catch(e) {
+    // Weekly failed — still render with daily only, don't retry
+    console.warn(`${label} weekly failed:`, e.message);
+  }
+  if (ST.stopFlag) return failed;
+
+  // Analyze and render each ticker
+  const quotes = quotesFromCandles(daily);
+  for (const t of tickers) {
+    const d = daily[t], w = weekly[t];
+    const q = quotes[t] || (d ? {close:d[d.length-1].c, change:0, pct:0} : null);
+    if (!d || !q) {
+      ST.data[t] = {ok:false, err:'No data returned', ts:Date.now()};
+      failed.push(t); // retry next round
+    } else {
+      ST.data[t] = {
+        ok:true,
+        daily:  analyze(d, w, q, 'swing'),
+        weekly: analyze(d, w, q, 'investor'),
+        _daily:  d,
+        _weekly: w,
+        ts: Date.now(),
+      };
+    }
+    renderCard(t);
+  }
+  renderWatchlist();
+  return failed;
+}
+
+async function doLoad(onlyTickers) {
+  if (ST.loading) return;
+  const k = keys();
+  if (!k.length) { showBanner('Add at least one API key — tap 🔑 Keys.','err'); return; }
+  ST.loading  = true;
+  ST.stopFlag = false;
+  setRefreshIcon(true);
+  el('stopBtn').style.display = '';
+  el('startBtn').style.display = 'none';
+
+  // Build the full queue — tickers still to be loaded (or retried)
+  let queue = [...(onlyTickers || ST.tickers)];
+  const slotsPerMinute = k.length * TICKERS_PER_KEY_PER_MIN; // e.g. 2 keys × 4 = 8/min
+  let round = 1;
+
+  while (queue.length > 0 && !ST.stopFlag) {
+    // Take one slot per key (4 tickers each) from the front of the queue
+    const roundTickers = queue.slice(0, slotsPerMinute);
+    queue = queue.slice(slotsPerMinute);
+
+    const loaded   = round === 1 ? roundTickers.length : roundTickers.length;
+    const total    = (onlyTickers || ST.tickers).length;
+    const done     = total - queue.length - roundTickers.length;
+    setStatus(`Round ${round}: loading ${roundTickers.length} ticker${roundTickers.length>1?'s':''} (${done+roundTickers.length}/${total})…`);
+
+    // Split this round's tickers across keys — each key gets 4
+    const keySlots = k.map((key, ki) => ({
+      key,
+      tickers: roundTickers.filter((_,i) => i % k.length === ki),
+      label: `K${ki+1} R${round}`,
+    })).filter(s => s.tickers.length > 0);
+
+    // Fire all keys simultaneously — each handles its 4 tickers
+    const results = await Promise.all(keySlots.map(s => loadRound(s.key, s.tickers, s.label)));
+    const failed  = results.flat();
+
+    // Any failed tickers go back to the front of the queue for retry
+    if (failed.length) {
+      setStatus(`${failed.length} ticker${failed.length>1?'s':''} failed — will retry next round`);
+      queue = [...failed, ...queue];
+    }
+
+    round++;
+
+    // If more tickers remain, wait for next minute boundary
+    if (queue.length > 0 && !ST.stopFlag) {
+      await waitForNextMinute(`Round ${round}: `);
+    }
+  }
+
+  // Cleanup always runs — even if an error or stop interrupted the loop
+  ST.loading  = false;
+  ST.stopFlag = false;
+  setRefreshIcon(false);
+  el('stopBtn').style.display  = 'none';
+  el('startBtn').style.display = '';
+  setStatus(ST.stopFlag ? 'Stopped.' : '');
+  saveState();
+  renderWatchlist();
+  renderSignals();
+}
+
+// ── Load entry points ─────────────────────────────────────
+async function initialLoad() {
+  if (!keys().length) { showBanner('Add at least one API key — tap 🔑 Keys.','info'); return; }
+  await doLoad();
+}
+
+function startLoad()  { renderWatchlist(); initialLoad(); }
+function stopLoad() {
+  if (!ST.loading) return;
+  ST.stopFlag = true;
+  setStatus('Stopping after current batch…');
+  // startBtn restored when doLoad's finally block runs
+}
+function clearData()  {
+  if (ST.loading) stopLoad();
+  ST.data = {};
+  try { sessionStorage.removeItem('shannonTA_data'); } catch(e) {}
+  renderWatchlist();
+  renderSignals();
+  showBanner('Data cleared — tap ▶ to reload.','info');
+}
+
+// ═══════════════════════════════════════════════════════════
+//  ANALYSIS ENGINE
+// ═══════════════════════════════════════════════════════════
+function ema(arr,p){
+  if(arr.length<p)return null;
+  const k=2/(p+1);let e=arr.slice(0,p).reduce((a,b)=>a+b,0)/p;
+  for(let i=p;i<arr.length;i++)e=arr[i]*k+e*(1-k);return e;
+}
+function emaSeries(arr,p){
+  if(arr.length<p)return[];
+  const k=2/(p+1),out=new Array(arr.length).fill(null);
+  let e=arr.slice(0,p).reduce((a,b)=>a+b,0)/p;out[p-1]=e;
+  for(let i=p;i<arr.length;i++){e=arr[i]*k+e*(1-k);out[i]=e;}return out;
+}
+function sma(arr,p){return arr.length<p?null:arr.slice(-p).reduce((a,b)=>a+b,0)/p;}
+function maSlope(s,n=5){
+  const f=s.filter(x=>x!=null);if(f.length<n+1)return 0;
+  const r=f.slice(-n);return(r[r.length-1]-r[0])/r[0];
+}
+function structure(cls,lb=30){
+  if(cls.length<lb+5)return'insufficient';
+  const r=cls.slice(-lb),pk=[],tr=[];
+  for(let i=2;i<r.length-2;i++){
+    if(r[i]>r[i-1]&&r[i]>r[i-2]&&r[i]>r[i+1]&&r[i]>r[i+2])pk.push(r[i]);
+    if(r[i]<r[i-1]&&r[i]<r[i-2]&&r[i]<r[i+1]&&r[i]<r[i+2])tr.push(r[i]);
+  }
+  if(pk.length>=2&&tr.length>=2){
+    if(pk[pk.length-1]>pk[pk.length-2]&&tr[tr.length-1]>tr[tr.length-2])return'hhhl';
+    if(pk[pk.length-1]<pk[pk.length-2]&&tr[tr.length-1]<tr[tr.length-2])return'lhll';
+  }
+  return'mixed';
+}
+function volRatio(c,lb=20){
+  if(c.length<lb+1)return null;
+  const r=c.slice(-lb);let uv=0,uc=0,dv=0,dc=0;
+  for(let i=1;i<r.length;i++){
+    if(r[i].c>r[i-1].c){uv+=r[i].v;uc++;}
+    else if(r[i].c<r[i-1].c){dv+=r[i].v;dc++;}
+  }
+  const au=uc?uv/uc:0,ad=dc?dv/dc:0;
+  return{ratio:ad?au/ad:1};
+}
+function vwap(c,lb=20){
+  const r=c.slice(-lb);let tp=0,vol=0;
+  for(const x of r){const t=(x.h+x.l+x.c)/3;tp+=t*x.v;vol+=x.v;}
+  return vol?tp/vol:null;
+}
+function pullbackQual(c,ma10s,lb=10){
+  if(c.length<lb+1)return null;
+  const rc=c.slice(-lb),rm=ma10s.slice(-lb);let pb=0,pvd=0;
+  for(let i=1;i<rc.length;i++){
+    if(rc[i].c<rc[i-1].c||(rm[i]&&rc[i].c<rm[i])){pb++;if(rc[i].v<rc[i-1].v)pvd++;}
+  }
+  return pb?pvd/pb:null;
+}
+
+// ── Pass 2 additions ─────────────────────────────────────────
+// Stochastic, ADX, support-stack and volatility contraction all extend
+// the read below — none of them replace the Stage/MA framework, which
+// stays exactly as Shannon describes it (see detectStage()).
+
+// 14-3 Raw Stochastic. %K is unsmoothed ("raw"); %D is a 3-day SMA of %K.
+// Shannon's own approach leans more on RSI pullback into 40-50, moving
+// averages and VWAP than on stochastics — treat this as a secondary,
+// complementary timing tool, not a primary trend call.
+function stochasticSeries(c,kPeriod=14,dPeriod=3){
+  const n=c.length,k=new Array(n).fill(null);
+  if(n<kPeriod)return{k,d:new Array(n).fill(null)};
+  for(let i=kPeriod-1;i<n;i++){
+    let hh=-Infinity,ll=Infinity;
+    for(let j=i-kPeriod+1;j<=i;j++){if(c[j].h>hh)hh=c[j].h;if(c[j].l<ll)ll=c[j].l;}
+    const range=hh-ll;
+    k[i]=range>0?(c[i].c-ll)/range*100:(k[i-1]!=null?k[i-1]:50);
+  }
+  const d=new Array(n).fill(null);
+  for(let i=kPeriod-1+dPeriod-1;i<n;i++){
+    const win=k.slice(i-dPeriod+1,i+1);
+    if(win.some(v=>v==null))continue;
+    d[i]=win.reduce((a,b)=>a+b,0)/dPeriod;
+  }
+  return{k,d};
+}
+// Classifies the current %K zone and flags the most relevant recent cross.
+// "40→50 cross" = pullback-in-uptrend continuation — the setup Style 2 is
+// actually built around. "20→30 cross" = oversold bounce, a different and
+// lower-conviction setup per the project's own stochastic notes.
+function stochState(kS,dS,lookback=10){
+  const n=kS.length;
+  const kNow=kS[n-1],dNow=dS[n-1],kPrev=kS[n-2];
+  if(kNow==null||dNow==null||kPrev==null)return null;
+  const zone=kNow>=80?'Overbought':kNow>=50?'Upper-mid':kNow>=40?'Mid':kNow>=20?'Lower-mid':'Oversold';
+  const recent=kS.slice(Math.max(0,n-lookback),n-1).filter(v=>v!=null);
+  const recentLow=recent.length?Math.min(...recent):kNow;
+  let signal='—';
+  if(kPrev<50&&kNow>=50&&recentLow>=33&&recentLow<=47)signal='40→50 cross (continuation)';
+  else if(kPrev<30&&kNow>=30&&recentLow<20)signal='20→30 cross (oversold bounce)';
+  else if(kPrev<80&&kNow>=80)signal='Crossing into overbought';
+  else if(kPrev>=50&&kNow<50)signal='Losing the 50 line';
+  else if(kPrev>=20&&kNow<20)signal='Dropping into oversold';
+  return{k:kNow,d:dNow,zone,signal,rising:kNow>kPrev,room70:70-kNow};
+}
+
+// Wilder's ADX(14) with +DI/-DI. Trend/chop gate: <20 choppy, 20-25
+// developing, >=25 trending. Used below to gate conviction on the Stage
+// and stochastic signals — it never changes the Stage read itself.
+function adxSeries(c,period=14){
+  const n=c.length;
+  const plusDI=new Array(n).fill(null),minusDI=new Array(n).fill(null),adx=new Array(n).fill(null);
+  if(n<period*2+1)return{plusDI,minusDI,adx};
+  const tr=new Array(n).fill(0),pdm=new Array(n).fill(0),mdm=new Array(n).fill(0);
+  for(let i=1;i<n;i++){
+    tr[i]=Math.max(c[i].h-c[i].l,Math.abs(c[i].h-c[i-1].c),Math.abs(c[i].l-c[i-1].c));
+    const up=c[i].h-c[i-1].h,dn=c[i-1].l-c[i].l;
+    pdm[i]=(up>dn&&up>0)?up:0;
+    mdm[i]=(dn>up&&dn>0)?dn:0;
+  }
+  let trS=0,pS=0,mS=0;
+  for(let i=1;i<=period;i++){trS+=tr[i];pS+=pdm[i];mS+=mdm[i];}
+  const dx=new Array(n).fill(null);
+  const setDI=i=>{
+    plusDI[i]=trS?100*pS/trS:0;minusDI[i]=trS?100*mS/trS:0;
+    dx[i]=(plusDI[i]+minusDI[i])?100*Math.abs(plusDI[i]-minusDI[i])/(plusDI[i]+minusDI[i]):0;
+  };
+  setDI(period);
+  for(let i=period+1;i<n;i++){
+    trS=trS-trS/period+tr[i];pS=pS-pS/period+pdm[i];mS=mS-mS/period+mdm[i];
+    setDI(i);
+  }
+  let sum=0,start=-1;
+  for(let i=period,cnt=0;i<n;i++){
+    if(dx[i]==null)continue;
+    sum+=dx[i];cnt++;
+    if(cnt===period){adx[i]=sum/period;start=i;break;}
+  }
+  if(start>=0)for(let i=start+1;i<n;i++)adx[i]=(adx[i-1]*(period-1)+dx[i])/period;
+  return{plusDI,minusDI,adx};
+}
+
+// Support-stack: counts confluence of support factors currently sitting
+// below price and "in play" (within ~12% — a level that far away has
+// little day-to-day relevance). This is a proximity/confluence proxy,
+// not a strength score for any single level — per Shannon, the strength
+// of a level depends on how long it took to form, the volume during its
+// formation, and how recently it formed, none of which a count captures.
+function supportStack(c,close,m20,m20s,m50,m50s,vw){
+  const factors=[];
+  const near=lvl=>lvl!=null&&lvl<close&&(close-lvl)/close<=0.12;
+  if(near(m20)&&maSlope(m20s,5)>0)factors.push({label:'20 EMA (rising)',value:m20});
+  if(near(m50)&&maSlope(m50s,10)>0)factors.push({label:'50 EMA (rising)',value:m50});
+  if(near(vw))factors.push({label:'20d VWAP',value:vw});
+  if(c.length>=20){
+    const sl=swingLow(c,20);
+    if(near(sl))factors.push({label:'Recent swing low',value:sl});
+  }
+  if(c.length>=75){
+    // Old resistance the stock has already broken through — approximated
+    // as a swing high formed before the last month, now sitting under price.
+    const priorBase=swingHigh(c.slice(0,-20),50);
+    if(near(priorBase))factors.push({label:'Prior base/breakout level',value:priorBase});
+  }
+  factors.sort((a,b)=>b.value-a.value);
+  return{count:factors.length,factors};
+}
+// Resistance-stack: the SHORT-side mirror of supportStack. Same confluence-
+// count logic, flipped above price — falling EMAs, VWAP, a recent swing
+// high, and an old support level the stock has already broken down through
+// (now overhead supply). Same caveat as the long side: this is a proximity
+// count, not a strength score for any single level.
+function resistanceStack(c,close,m20,m20s,m50,m50s,vw){
+  const factors=[];
+  const near=lvl=>lvl!=null&&lvl>close&&(lvl-close)/close<=0.12;
+  if(near(m20)&&maSlope(m20s,5)<0)factors.push({label:'20 EMA (falling)',value:m20});
+  if(near(m50)&&maSlope(m50s,10)<0)factors.push({label:'50 EMA (falling)',value:m50});
+  if(near(vw))factors.push({label:'20d VWAP',value:vw});
+  if(c.length>=20){
+    const sh=swingHigh(c,20);
+    if(near(sh))factors.push({label:'Recent swing high',value:sh});
+  }
+  if(c.length>=75){
+    // Old support the stock has already broken down through — approximated
+    // as a swing low formed before the last month, now sitting above price.
+    const priorBase=swingLow(c.slice(0,-20),50);
+    if(near(priorBase))factors.push({label:'Prior breakdown level',value:priorBase});
+  }
+  factors.sort((a,b)=>a.value-b.value); // ascending: nearest-to-price (lowest) first
+  return{count:factors.length,factors};
+}
+
+function trueRangeSeries(c){
+  const n=c.length,out=new Array(n).fill(null);
+  for(let i=1;i<n;i++)out[i]=Math.max(c[i].h-c[i].l,Math.abs(c[i].h-c[i-1].c),Math.abs(c[i].l-c[i-1].c));
+  return out;
+}
+function atrSeries(c,period=14){
+  const n=c.length,out=new Array(n).fill(null);
+  if(n<period+1)return out;
+  const tr=trueRangeSeries(c);
+  let sum=0;
+  for(let i=1;i<=period;i++)sum+=tr[i];
+  out[period]=sum/period;
+  for(let i=period+1;i<n;i++)out[i]=(out[i-1]*(period-1)+tr[i])/period;
+  return out;
+}
+// Volatility contraction: current ATR% (ATR/close) vs its own trailing
+// baseline average. Per Shannon, stocks alternate between range EXPANSION
+// in Stage 2/4 and range CONTRACTION in Stage 1/3 — this is the "coiling
+// before the next move" read, most useful pre-breakout (while still in
+// Stage 1 or 3), not as a Stage 2 confirmation signal.
+function volContraction(c,period=14,baseLookback=50){
+  if(!c||c.length<period+baseLookback)return null;
+  const atrS=atrSeries(c,period),cls=c.map(x=>x.c);
+  const atrPctSeries=atrS.map((v,i)=>v!=null&&cls[i]?v/cls[i]*100:null);
+  const now=atrPctSeries[atrPctSeries.length-1];
+  if(now==null)return null;
+  const base=atrPctSeries.slice(-baseLookback).filter(x=>x!=null);
+  if(!base.length)return null;
+  const baseline=base.reduce((a,b)=>a+b,0)/base.length;
+  const ratio=baseline?now/baseline:1;
+  const state=ratio<=0.65?'Tight coil':ratio<=0.85?'Contracting':ratio>=1.3?'Expanding':'Normal';
+  return{atrPct:now,baseline,ratio,state};
+}
+
+function detectStage(close,m10,m20,m50,sl50,struct,vr){
+  if(!m10||!m20||!m50)return{stage:0,conf:0,desc:'Insufficient data.'};
+  const bull=m10>m20&&m20>m50,bear=m10<m20&&m20<m50;
+  const rising=sl50>.002,falling=sl50<-.002;
+  const abv=close>m10&&close>m20&&close>m50,blw=close<m10&&close<m20&&close<m50;
+  const vb=vr?.ratio>1.1;
+  if(bull&&abv&&rising){
+    if(struct==='hhhl'&&vb)return{stage:2,conf:90,desc:'Clear Stage 2 uptrend. MAs bullish (10>20>50), all rising. HH/HL confirmed with volume.'};
+    if(struct==='hhhl')   return{stage:2,conf:80,desc:'Stage 2 uptrend. MAs bullish and rising. HH/HL confirmed.'};
+    return{stage:2,conf:65,desc:'MA structure bullish. Watch for HH/HL and volume confirmation.'};
+  }
+  if(bear&&blw&&falling){
+    if(struct==='lhll')return{stage:4,conf:88,desc:'Clear Stage 4 decline. MAs bearish, all falling. LH/LL confirmed.'};
+    return{stage:4,conf:70,desc:'MA structure bearish. Price below all MAs. Downtrend likely.'};
+  }
+  if(!bull&&!bear){
+    if(falling&&!abv)return{stage:1,conf:60,desc:'Possible Stage 1 accumulation. Watch for breakout on expanding volume.'};
+    if(rising&&!blw) return{stage:3,conf:60,desc:'Possible Stage 3 distribution. MAs flattening near highs — reduce, do not add.'};
+    return{stage:1,conf:40,desc:'Range-bound. Direction not yet determined.'};
+  }
+  if(bull&&!abv)return{stage:2,conf:55,desc:'Uptrend with pullback. MAs still bullish.'};
+  if(bear&&!blw)return{stage:4,conf:55,desc:'Downtrend with bounce. Resistance at declining MAs.'};
+  return{stage:1,conf:35,desc:'Mixed signals.'};
+}
+function scoreSignal(a){
+  let sc=0;
+  // ADX trend/chop gate — dampens the stage-based score when the trend
+  // isn't confirmed yet. A bullish MA stack with ADX<20 is still "weak"
+  // by the project's own framework; this doesn't touch the Stage label,
+  // only how hard the score leans on it.
+  const adxMult=!a.adx?1:a.adx.value>=25?1:a.adx.value>=20?0.85:0.6;
+  sc+=(a.stage===2?35:a.stage===4?-35:0)*adxMult;
+  sc+=({strong_bull:20,bull:15,bull_pb:5,bear:-15,strong_bear:-20}[a.mat]||0);
+  sc+=a.struct==='hhhl'?15:a.struct==='lhll'?-15:0;
+  if(a.vr)sc+=a.vr.ratio>1.3?10:a.vr.ratio>1.05?5:a.vr.ratio<0.8?-10:a.vr.ratio<0.95?-5:0;
+  if(a.vwap&&a.close)sc+=a.close>a.vwap*1.01?5:a.close<a.vwap*.99?-5:0;
+  if(a.stage===2&&a.pq>0.6)sc+=8;
+  if(a.wStage!=null)sc+=a.wStage===a.stage?7:a.wStage===4&&a.stage===2?-10:0;
+  // Stochastic — only rewarded in the Style 2 continuation context (a
+  // 40→50 cross inside a Stage 2 uptrend), and only once ADX shows some
+  // trend strength — mirrors "ADX gates stochastic signals" from the brief.
+  if(a.stage===2&&a.stoch?.signal?.startsWith('40→50')&&(a.adx?.value??0)>=20)sc+=8;
+  // Support-stack — confluence of support below price nudges conviction
+  // on long-side reads. Left out of Stage 4 scoring: a stacked floor under
+  // a declining stock is a reason for caution on a short, not a bonus.
+  if(a.stage!==4)sc+=Math.min(a.stack?.count||0,4)*2;
+  // Resistance-stack — mirror of the above. Confluence of resistance above
+  // price weighs against conviction on long-side reads. Left out of Stage 2
+  // scoring: a stacked lid over an uptrending stock is a reason for caution
+  // on the long, not a bonus for a short thesis we don't have here.
+  if(a.stage!==2)sc-=Math.min(a.resStack?.count||0,4)*2;
+  sc=Math.max(-100,Math.min(100,sc));
+  const[sig,sigCls]=sc>=55?['Strong Buy','s-sb']:sc>=25?['Buy','s-b']:
+    sc>=-20?['Neutral','s-n']:sc>=-50?['Sell','s-s']:['Strong Sell','s-ss'];
+  return{sig,sigCls,sc};
+}
+function swingLow(c,lb=15){
+  const r=c.slice(-lb);let lo=Infinity;
+  for(let i=1;i<r.length-1;i++)if(r[i].l<r[i-1].l&&r[i].l<r[i+1].l)lo=Math.min(lo,r[i].l);
+  return lo===Infinity?r[r.length-1].l:lo;
+}
+function swingHigh(c,lb=15){
+  const r=c.slice(-lb);let hi=-Infinity;
+  for(let i=1;i<r.length-1;i++)if(r[i].h>r[i-1].h&&r[i].h>r[i+1].h)hi=Math.max(hi,r[i].h);
+  return hi===-Infinity?r[r.length-1].h:hi;
+}
+function calcTrade(a,daily){
+  const{close,m10,m20,m50,stage,sc,stack,resStack}=a;
+  if(!close||!m10||!m20||!m50)return null;
+  if(stage===2&&sc>=20){
+    const pd=(close-m10)/close;
+    const entry=pd<=0.025?close:m10*1.002;
+    const note=pd<=0.005?'At 10 EMA — active pullback':pd<=0.025?'Near 10 EMA':'Wait — limit at 10 EMA';
+    // Prefer a structural support-stack level under entry (swing low or a
+    // prior base/breakout level) over the plain 12-day swing low, when one
+    // sits there — but only those two types. The 20 EMA/VWAP factors live
+    // in the stack for confluence-counting purposes, not as stop references:
+    // they sit too close to the entry zone itself to survive normal noise.
+    const stopTypes=['Recent swing low','Prior base/breakout level'];
+    const stackStop=stack?.factors?.find(f=>stopTypes.includes(f.label)&&f.value<entry)??null;
+    const sl=stackStop?stackStop.value:(daily?swingLow(daily,12):m50*.97);
+    const stop=Math.max(sl*.992,m50*.985);
+    if(stop>=entry)return null;
+    const risk=entry-stop,sh=daily?swingHigh(daily,20):entry+risk*2;
+    const t1=sh>entry?sh:entry+risk*2,t2=entry+risk*3;
+    const stopNote=sl*.992>m50*.985
+      ?(stackStop?(stackStop.label==='Recent swing low'?'Below swing low (stack)':'Below prior base (stack)'):'Below swing low')
+      :'Below 50 EMA';
+    return{side:'LONG',entry,note,stop,stopNote,
+           t1,t2,risk,rr1:(t1-entry)/risk,riskPct:risk/entry*100};
+  }
+  if(stage===4&&sc<=-20){
+    const entry=close;
+    // Mirror of the LONG branch above: prefer a structural resistance-stack
+    // level over entry (swing high or a prior breakdown level) over the
+    // plain 12-day swing high, when one sits there. Same exclusion applies
+    // to the 20 EMA/VWAP factors — too close to entry to serve as a stop.
+    const stopTypes=['Recent swing high','Prior breakdown level'];
+    const stackStop=resStack?.factors?.find(f=>stopTypes.includes(f.label)&&f.value>entry)??null;
+    const sh=stackStop?stackStop.value:(daily?swingHigh(daily,12):m50*1.03);
+    const stop=Math.min(sh*1.008,m50*1.015);
+    if(stop<=entry)return null;
+    const risk=stop-entry,sl=daily?swingLow(daily,20):entry-risk*2;
+    const t1=sl<entry?sl:entry-risk*2,t2=entry-risk*3;
+    const stopNote=sh*1.008<m50*1.015
+      ?(stackStop?(stackStop.label==='Recent swing high'?'Above swing high (stack)':'Above prior breakdown (stack)'):'Above swing high')
+      :'Above 50 EMA';
+    return{side:'SHORT',entry,note:'At/near 10 EMA bounce',stop,stopNote,
+           t1,t2,risk,rr1:(entry-t1)/risk,riskPct:risk/entry*100};
+  }
+  return null;
+}
+// Walk back through daily closes to find how many bars ago the current
+// bullish MA stack (10>20>50) first formed. This tells us whether a
+// Stage 2 signal is FRESH (just turned) or EXTENDED (been running a while).
+// Only meaningful when the current stack IS bullish — returns null otherwise.
+function barsSinceStage2(cls, maxLookback=90) {
+  if (cls.length < 60) return null;
+  const m10s = emaSeries(cls,10), m20s = emaSeries(cls,20), m50s = emaSeries(cls,50);
+  const n = cls.length;
+  // Current state must be bullish for this to be meaningful
+  const nowBull = m10s[n-1]>m20s[n-1] && m20s[n-1]>m50s[n-1];
+  if (!nowBull) return null;
+  // Walk backward from the most recent bar until the stack was NOT bullish
+  let bars = 0;
+  for (let i = n-1; i >= Math.max(0, n-maxLookback); i--) {
+    const bull = m10s[i]!=null && m20s[i]!=null && m50s[i]!=null && m10s[i]>m20s[i] && m20s[i]>m50s[i];
+    if (!bull) break;
+    bars++;
+  }
+  // If we hit maxLookback without finding the start, it's been bullish
+  // for at least that long — report as "90+" via the cap
+  return bars;
+}
+
+// Classify freshness into a simple label for display
+function freshnessLabel(bars) {
+  if (bars == null) return { label:'—', cls:'muted', note:'Not in Stage 2' };
+  if (bars <= 10)  return { label:'Fresh',       cls:'bull', note:`${bars}d since turn` };
+  if (bars <= 30)  return { label:'Established', cls:'warn', note:`${bars}d since turn` };
+  return               { label:'Extended',      cls:'bear', note:`${bars}d+ since turn` };
+}
+
+// Style-fit tagging per the project's 3-style framework (see brief). Style
+// 3 (thesis/floor plays) is deliberately NOT computed — Shannon's approach
+// treats floor levels as a manual, per-name judgment call, not something
+// to infer from indicators, and the brief agrees ("least indicator-driven").
+function styleFit(a){
+  const fits=[];
+  if(a.stage===1&&a.conf>=50)fits.push(1);
+  if(a.stage===2&&a.bars2!=null&&a.bars2<=30&&a.stoch?.signal?.startsWith('40→50')&&
+     (a.stack?.count||0)>=2&&a.stoch.room70>0&&(a.adx?.value??0)>=20)fits.push(2);
+  return fits;
+}
+// Stage → action mapping, straight out of the brief's own table.
+function actionFlag(a){
+  if(a.stage===1)return'Watch';
+  if(a.stage===2)return(a.bars2!=null&&a.bars2<=30)?'Buy':'Hold/Trim';
+  if(a.stage===3)return'Trim';
+  if(a.stage===4)return'Exit/Avoid';
+  return'—';
+}
+
+function analyze(daily,weekly,quote,mode){
+  if(!daily||daily.length<55)return null;
+  const pri=mode==='investor'&&weekly?.length>=55?weekly:daily;
+  const sec=mode==='investor'?daily:weekly;
+  const cls=pri.map(c=>c.c);
+  const m10=ema(cls,10),m20=ema(cls,20),m50=ema(cls,50),m200=sma(cls,200);
+  const m10s=emaSeries(cls,10),m20s=emaSeries(cls,20),m50s=emaSeries(cls,50);
+  const sl50=maSlope(m50s,10),struct=structure(cls,30);
+  const vr=volRatio(pri,20),vw=vwap(pri,20),pq=pullbackQual(pri,m10s,10);
+  const close=quote.close||cls[cls.length-1];
+  const bull=m10>m20&&m20>m50,bear=m10<m20&&m20<m50;
+  const mat=!m10||!m20||!m50?'unknown'
+    :bull&&close>m10?'strong_bull':bull&&close>m20?'bull':bull?'bull_pb'
+    :bear&&close<m10?'strong_bear':bear?'bear':'neutral';
+  const{stage,conf,desc}=detectStage(close,m10,m20,m50,sl50,struct,vr);
+  let wStage=null;
+  if(sec?.length>=55){
+    const wc=sec.map(c=>c.c);
+    wStage=detectStage(wc[wc.length-1],ema(wc,10),ema(wc,20),ema(wc,50),
+      maSlope(emaSeries(wc,50),6),structure(wc,20),volRatio(sec,20)).stage;
+  }
+  // Freshness — only computed on the daily timeframe (pri=daily unless investor mode)
+  const bars2 = barsSinceStage2(cls);
+
+  // Pass 2: rolling stochastic, ADX, support-stack, resistance-stack,
+  // volatility contraction — all computed on the same primary timeframe
+  // (pri) as the MA/Stage read above.
+  const stochS = stochasticSeries(pri,14,3);
+  const stoch  = stochState(stochS.k,stochS.d);
+  const adxS   = adxSeries(pri,14);
+  const adxVal = adxS.adx[adxS.adx.length-1];
+  const adx    = adxVal==null?null:{
+    value:adxVal, plusDI:adxS.plusDI[adxS.plusDI.length-1], minusDI:adxS.minusDI[adxS.minusDI.length-1],
+    state:adxVal>=25?'Trending':adxVal>=20?'Developing':'Choppy',
+    dir:adxS.plusDI[adxS.plusDI.length-1]>adxS.minusDI[adxS.minusDI.length-1]?'up':'down',
+  };
+  const stack    = supportStack(pri,close,m20,m20s,m50,m50s,vw);
+  const resStack = resistanceStack(pri,close,m20,m20s,m50,m50s,vw);
+  const volC     = volContraction(pri);
+
+  const a={close,chg:quote.change,pct:quote.pct,m10,m20,m50,m200,mat,struct,vr,vwap:vw,pq,
+           stage,conf,desc,wStage,bars2,stoch,adx,stack,resStack,volC};
+  Object.assign(a,scoreSignal(a));
+  a.trade=calcTrade(a,daily);
+  a.styleFit=styleFit(a);
+  a.actionFlag=actionFlag(a);
+  return a;
+}
+
+// ═══════════════════════════════════════════════════════════
+//  CHART — pure SVG, no library, no API calls
+// ═══════════════════════════════════════════════════════════
+function buildChart(candles, analysis, ticker) {
+  if (!candles || candles.length < 10) return '<div style="padding:10px;font-size:11px;color:var(--txt3)">Not enough data for chart.</div>';
+
+  // Use last 60 candles for mobile readability
+  const bars = candles.slice(-60);
+  const n    = bars.length;
+
+  // ── Compute MA series ──
+  function emaArr(cls, p) {
+    if (cls.length < p) return [];
+    const k = 2/(p+1); const out = new Array(cls.length).fill(null);
+    let e = cls.slice(0,p).reduce((a,b)=>a+b,0)/p; out[p-1]=e;
+    for (let i=p;i<cls.length;i++){e=cls[i]*k+e*(1-k);out[i]=e;}
+    return out;
+  }
+  function smaArr(cls, p) {
+    return cls.map((_,i) => i<p-1?null:cls.slice(i-p+1,i+1).reduce((a,b)=>a+b,0)/p);
+  }
+
+  const allCls  = candles.map(c=>c.c);
+  const ema10   = emaArr(allCls,10).slice(-n);
+  const ema20   = emaArr(allCls,20).slice(-n);
+  const ema50   = emaArr(allCls,50).slice(-n);
+  const sma200  = smaArr(allCls,200).slice(-n);
+
+  // ── Price range ──
+  const priceHigh = Math.max(...bars.map(b=>b.h), ...ema10.filter(Boolean), ...ema50.filter(Boolean));
+  const priceLow  = Math.min(...bars.map(b=>b.l), ...ema10.filter(Boolean), ...ema50.filter(Boolean));
+  const priceRange = priceHigh - priceLow || 1;
+
+  // ── Volume range ──
+  const maxVol = Math.max(...bars.map(b=>b.v||0)) || 1;
+
+  // ── Layout ──
+  const W = 360, H = 240;
+  const padL=8, padR=8, padT=12, padB=20;
+  const volH = 40; // height of volume panel
+  const priceH = H - padT - padB - volH - 4; // 4px gap between panels
+  const barW = Math.max(1, (W - padL - padR) / n);
+  const barGap = barW * 0.15;
+
+  // ── Coordinate helpers ──
+  const px = i => padL + (i + 0.5) * (W - padL - padR) / n;
+  const py = v => padT + priceH - ((v - priceLow) / priceRange) * priceH;
+  const vy = v => (H - padB) - (v / maxVol) * volH;
+
+  // ── Build SVG elements ──
+  let svg = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" style="width:100%;display:block">`;
+
+  // Background
+  svg += `<rect width="${W}" height="${H}" fill="#0D1117"/>`;
+
+  // Stage background shading — green tint for Stage 2 periods
+  // Simple approach: shade bars where 10ema > 20ema > 50ema (bullish stack)
+  let shadeStart = null;
+  for (let i=0; i<=n; i++) {
+    const bull = ema10[i]&&ema20[i]&&ema50[i] && ema10[i]>ema20[i] && ema20[i]>ema50[i];
+    const bear = ema10[i]&&ema20[i]&&ema50[i] && ema10[i]<ema20[i] && ema20[i]<ema50[i];
+    if ((bull||bear) && shadeStart===null) { shadeStart={i, bull}; }
+    else if (shadeStart!==null && (!bull&&!bear || (bull&&!shadeStart.bull) || (bear&&shadeStart.bull) || i===n)) {
+      const x1=padL+(shadeStart.i)*(W-padL-padR)/n;
+      const x2=padL+(i)*(W-padL-padR)/n;
+      const col=shadeStart.bull?'rgba(63,185,80,0.06)':'rgba(248,81,73,0.06)';
+      svg+=`<rect x="${x1}" y="${padT}" width="${x2-x1}" height="${priceH}" fill="${col}"/>`;
+      shadeStart=(bull||bear)?{i,bull}:null;
+    }
+  }
+
+  // MA lines
+  const drawLine = (pts, color, dash='') => {
+    const d = pts.map((v,i)=>v!=null?`${i===0||pts[i-1]==null?'M':'L'}${px(i).toFixed(1)},${py(v).toFixed(1)}`:'').filter(Boolean).join(' ');
+    if (!d) return '';
+    return `<path d="${d}" fill="none" stroke="${color}" stroke-width="1" opacity="0.85" ${dash?`stroke-dasharray="${dash}"`:''} stroke-linejoin="round"/>`;
+  };
+  svg += drawLine(sma200,'#484F58','3,3');   // 200 SMA — dashed dim
+  svg += drawLine(ema50, '#D29922');          // 50 EMA — amber
+  svg += drawLine(ema20, '#7C3AED');          // 20 EMA — purple
+  svg += drawLine(ema10, '#58A6FF');          // 10 EMA — blue
+
+  // Candles
+  for (let i=0; i<n; i++) {
+    const b = bars[i];
+    const x  = px(i);
+    const isUp = b.c >= b.o;
+    const col  = isUp ? '#3FB950' : '#F85149';
+    const bx   = x - barW/2 + barGap;
+    const bw   = Math.max(1, barW - barGap*2);
+    const top    = py(Math.max(b.o,b.c));
+    const bot    = py(Math.min(b.o,b.c));
+    const bodyH  = Math.max(1, bot - top);
+    // Wick
+    svg += `<line x1="${x.toFixed(1)}" y1="${py(b.h).toFixed(1)}" x2="${x.toFixed(1)}" y2="${py(b.l).toFixed(1)}" stroke="${col}" stroke-width="1" opacity="0.7"/>`;
+    // Body
+    svg += `<rect x="${bx.toFixed(1)}" y="${top.toFixed(1)}" width="${bw.toFixed(1)}" height="${bodyH.toFixed(1)}" fill="${col}" opacity="0.9"/>`;
+  }
+
+  // Trade levels — entry, stop, target
+  const tr = analysis?.trade;
+  if (tr) {
+    const drawLevel = (val, color, label) => {
+      if (!val || val < priceLow || val > priceHigh) return '';
+      const y = py(val).toFixed(1);
+      return `<line x1="${padL}" y1="${y}" x2="${W-padR}" y2="${y}" stroke="${color}" stroke-width="1" stroke-dasharray="4,3" opacity="0.8"/>
+        <text x="${W-padR-2}" y="${(+y-2).toFixed(1)}" text-anchor="end" fill="${color}" font-size="8" font-family="monospace">${label} ${val.toFixed(2)}</text>`;
+    };
+    svg += drawLevel(tr.entry, '#58A6FF', 'E');
+    svg += drawLevel(tr.stop,  '#F85149', 'S');
+    svg += drawLevel(tr.t1,    '#3FB950', 'T1');
+  }
+
+  // Volume bars
+  const volY0 = H - padB;
+  for (let i=0; i<n; i++) {
+    const b   = bars[i];
+    const x   = px(i);
+    const isUp = b.c >= b.o;
+    const vh  = Math.max(1, ((b.v||0)/maxVol) * volH);
+    const bx  = x - barW/2 + barGap;
+    const bw  = Math.max(1, barW - barGap*2);
+    svg += `<rect x="${bx.toFixed(1)}" y="${(volY0-vh).toFixed(1)}" width="${bw.toFixed(1)}" height="${vh.toFixed(1)}" fill="${isUp?'#3FB950':'#F85149'}" opacity="0.4"/>`;
+  }
+
+  // Price axis labels (3 levels)
+  const labelCount = 3;
+  for (let i=0;i<=labelCount;i++) {
+    const v = priceLow + (priceRange * i / labelCount);
+    const y = py(v);
+    svg += `<text x="${padL}" y="${(y-2).toFixed(1)}" fill="#484F58" font-size="8" font-family="monospace">$${v.toFixed(0)}</text>`;
+  }
+
+  // Date label — first and last candle
+  const fmtDate = d => {
+    const dt = new Date(d);
+    return `${dt.getMonth()+1}/${dt.getDate()}`;
+  };
+  if (bars[0]?.datetime)   svg += `<text x="${padL}" y="${H-3}" fill="#484F58" font-size="7" font-family="monospace">${fmtDate(bars[0].datetime)}</text>`;
+  if (bars[n-1]?.datetime) svg += `<text x="${W-padR}" y="${H-3}" fill="#484F58" font-size="7" font-family="monospace" text-anchor="end">${fmtDate(bars[n-1].datetime)}</text>`;
+
+  // Legend
+  const legends = [['10E','#58A6FF'],['20E','#7C3AED'],['50E','#D29922'],['200','#484F58']];
+  legends.forEach(([lbl,col],i) => {
+    const lx = padL + i*50;
+    svg += `<line x1="${lx}" y1="7" x2="${lx+12}" y2="7" stroke="${col}" stroke-width="1.5"/>`;
+    svg += `<text x="${lx+15}" y="10" fill="${col}" font-size="7" font-family="monospace">${lbl}</text>`;
+  });
+
+  svg += '</svg>';
+  return svg;
+}
+
+function toggleChart(btn) {
+  btn.classList.toggle('open');
+  const svgWrap = btn.nextElementSibling;
+  if (btn.classList.contains('open') && !svgWrap.querySelector('svg')) {
+    // Lazy render on first open
+    const ticker = btn.closest('.card').id.replace('card-','');
+    const tab    = ST.activeTabs[ticker]||'daily';
+    const r      = ST.data[ticker];
+    const a      = tab==='daily' ? r?.daily : r?.weekly;
+    const candles= r?.daily ? Object.values(r).find(v=>Array.isArray(v)) : null;
+    // Get the raw candle array — stored at analysis time
+    const rawCandles = r?._daily;
+    svgWrap.innerHTML = buildChart(rawCandles, a, ticker);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+//  RENDER
+// ═══════════════════════════════════════════════════════════
+const fmt  = v => v!=null?'$'+v.toFixed(2):'—';
+const fmtp = v => v!=null?(v>=0?'+':'')+v.toFixed(2)+'%':'—';
+
+function setStatus(msg){
+  const b=el('banner');
+  if(b&&!b.classList.contains('err')&&!b.classList.contains('ok')){
+    if(msg){b.textContent=msg;b.className='banner show info';}
+    else b.className='banner';
+  }
+}
+function showBanner(msg,type){
+  const b=el('banner');if(!b)return;
+  b.textContent=msg;b.className='banner'+(msg?` show ${type}`:'');
+}
+function setRefreshIcon(on){
+  const btn=el('refreshBtn');if(!btn)return;
+  btn.innerHTML=on?'<div class="spin"></div>'
+    :'<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M1 4v6h6M23 20v-6h-6"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>';
+}
+
+function buildTFSection(a,tf,dStage,wStage){
+  if(!a)return`<div class="tf-section${tf==='daily'?' vis':''}" data-tf="${tf}"><div class="tna" style="padding:10px 13px">Insufficient data.</div></div>`;
+  const sn=((a.sc||0)+100)/200;
+  const sc=a.sc>=25?'var(--green)':a.sc>=-20?'var(--amber)':'var(--red)';
+  const dot=Math.min(98,Math.max(2,((a.stage-1)/4+(a.conf/100)*.25)*100));
+  const maV=(()=>{
+    if(!a.m10||!a.m20||!a.m50)return['—','muted',''];
+    if(a.m10>a.m20&&a.m20>a.m50)return['Bullish','bull','10 > 20 > 50'];
+    if(a.m10<a.m20&&a.m20<a.m50)return['Bearish','bear','10 < 20 < 50'];
+    return['Mixed','warn','Intertwining'];
+  })();
+  const stV={hhhl:['HH/HL ✓','bull','Uptrend structure'],lhll:['LH/LL ✗','bear','Downtrend structure'],
+    mixed:['Mixed','warn','No clear pattern'],insufficient:['—','muted','Need more bars']}[a.struct]||['—','muted',''];
+  const vlV=(()=>{
+    if(!a.vr)return['—','muted',''];
+    const r=a.vr.ratio;
+    if(r>1.3)return[r.toFixed(1)+'x','bull','Up days dominate'];
+    if(r>1.05)return[r.toFixed(1)+'x','bull','Slight bull lean'];
+    if(r<.75)return[r.toFixed(1)+'x','bear','Down days dominate'];
+    if(r<.95)return[r.toFixed(1)+'x','bear','Slight bear lean'];
+    return['1.0x','muted','Balanced'];
+  })();
+  const vwV=(()=>{
+    if(!a.vwap||!a.close)return['—','muted',''];
+    const p=(a.close-a.vwap)/a.vwap*100;
+    return[(p>=0?'+':'')+p.toFixed(1)+'%',p>0?'bull':'bear','VWAP '+fmt(a.vwap)];
+  })();
+  const tfV=(()=>{
+    const os=tf==='daily'?wStage:dStage;
+    if(os==null)return['—','muted','Other TF limited'];
+    if(os===a.stage)return['Aligned ✓','bull',`D:S${dStage} W:S${wStage}`];
+    if(Math.abs(os-a.stage)===1)return['Near','warn',`D:S${dStage} W:S${wStage}`];
+    return['Diverged','bear',`D:S${dStage} W:S${wStage}`];
+  })();
+  const freshV = freshnessLabel(a.bars2);
+  const freshNote = freshV.note + ((a.stage===2&&a.adx&&a.adx.value<20)?' · ADX unconfirmed':'');
+  const stochV=(()=>{
+    if(!a.stoch)return['—','muted','Insufficient data'];
+    const cls=a.stoch.zone==='Overbought'||a.stoch.zone==='Oversold'?'warn':a.stoch.rising?'bull':'bear';
+    return[`${a.stoch.k.toFixed(0)}/${a.stoch.d.toFixed(0)}`,cls,a.stoch.signal!=='—'?a.stoch.signal:a.stoch.zone];
+  })();
+  const adxV=(()=>{
+    if(!a.adx)return['—','muted','Insufficient data'];
+    const cls=a.adx.state==='Trending'?(a.adx.dir==='up'?'bull':'bear'):a.adx.state==='Developing'?'warn':'muted';
+    return[a.adx.value.toFixed(0),cls,`${a.adx.state} · DI ${a.adx.dir}`];
+  })();
+  const stackV=(()=>{
+    if(!a.stack)return['—','muted',''];
+    const cls=a.stack.count>=3?'bull':a.stack.count>=1?'warn':'muted';
+    return[String(a.stack.count),cls,a.stack.count?a.stack.factors.map(f=>f.label).join(', '):'No confluence below price'];
+  })();
+  const resStackV=(()=>{
+    if(!a.resStack)return['—','muted',''];
+    const cls=a.resStack.count>=3?'bear':a.resStack.count>=1?'warn':'muted';
+    return[String(a.resStack.count),cls,a.resStack.count?a.resStack.factors.map(f=>f.label).join(', '):'No confluence above price'];
+  })();
+  const volV=(()=>{
+    if(!a.volC)return['—','muted','Insufficient data'];
+    const preBreak=(a.stage===1||a.stage===3)&&(a.volC.state==='Tight coil'||a.volC.state==='Contracting');
+    const cls=a.volC.state==='Tight coil'?(preBreak?'bull':'warn'):a.volC.state==='Contracting'?'warn':a.volC.state==='Expanding'?'bull':'muted';
+    return[a.volC.state,cls,`ATR ${a.volC.ratio.toFixed(2)}x baseline${preBreak?' · Pre-breakout watch':''}`];
+  })();
+  const tr=a.trade;
+  const tradeHTML=!tr
+    ?`<div class="trade"><div class="thdr none">No Trade Setup</div><div class="tna">${
+      a.stage===2?'No clean entry — price extended.':
+      a.stage===4?'No clean short — structure insufficient.':
+      `Stage ${a.stage}: ${a.stage===1?'Watch for range breakout.':'Watch for MA rollover.'}`}</div></div>`
+    :(()=>{
+      const isL=tr.side==='LONG';
+      const rrC=tr.rr1>=2?'var(--green)':tr.rr1>=1.5?'var(--amber)':'var(--red)';
+      return`<div class="trade">
+  <div class="thdr ${isL?'long':'short'}"><span>${isL?'▲ LONG':'▼ SHORT'}</span><span class="tnote">${tr.note}</span></div>
+  <div class="tgrid">
+    <div class="tcell"><div class="tclbl">Entry</div><div class="tcval">${fmt(tr.entry)}</div><div class="tcsub">Limit order</div></div>
+    <div class="tcell"><div class="tclbl">Stop</div><div class="tcval" style="color:var(--red)">${fmt(tr.stop)}</div><div class="tcsub">${tr.stopNote}</div></div>
+    <div class="tcell"><div class="tclbl">Target 1</div><div class="tcval" style="color:var(--green)">${fmt(tr.t1)}</div><div class="tcsub">Min objective</div></div>
+  </div>
+  <div class="rrrow">
+    <div class="rrlbl" style="color:${rrC}">R/R ${tr.rr1.toFixed(1)}:1</div>
+    <div class="rrtrk"><div class="rrfill" style="width:${Math.min(100,tr.rr1/3*100)}%;background:${rrC}"></div></div>
+    <div class="rrt2">${tr.riskPct.toFixed(1)}% risk · T2 ${fmt(tr.t2)}</div>
+  </div>
+</div>`;
+    })();
+  const maRows=[['10 EMA',a.m10],['20 EMA',a.m20],['50 EMA',a.m50],['200 SMA',a.m200]]
+    .filter(r=>r[1]).map(([lbl,val])=>{
+      const d=a.close?(a.close-val)/val*100:null;
+      return`<tr><td>${lbl}</td><td>${fmt(val)}</td><td class="${d>0?'bull':'bear'}">${d!=null?(d>=0?'+':'')+d.toFixed(1)+'%':'—'}</td></tr>`;
+    }).join('');
+  const pills=[];
+  if(a.mat?.includes('bull'))pills.push({t:'MA Stack ✓',c:'ok'});
+  else if(a.mat?.includes('bear'))pills.push({t:'MA Stack ✗',c:'bad'});
+  if(a.struct==='hhhl')pills.push({t:'HH/HL ✓',c:'ok'});
+  else if(a.struct==='lhll')pills.push({t:'LH/LL ✗',c:'bad'});
+  if(a.vr?.ratio>1.1)pills.push({t:'Vol Bullish',c:'ok'});
+  else if(a.vr?.ratio<0.9)pills.push({t:'Vol Bearish',c:'bad'});
+  if(a.vwap&&a.close>a.vwap)pills.push({t:'Above VWAP',c:'ok'});
+  else if(a.vwap&&a.close<a.vwap)pills.push({t:'Below VWAP',c:'mid'});
+  if(a.adx?.state==='Trending')pills.push({t:`ADX ${a.adx.value.toFixed(0)} Trending`,c:'ok'});
+  else if(a.adx?.state==='Choppy')pills.push({t:'ADX Choppy',c:'bad'});
+  if(a.stoch?.signal?.startsWith('40→50'))pills.push({t:'Stoch 40→50 ✓',c:'ok'});
+  else if(a.stoch?.signal?.startsWith('20→30'))pills.push({t:'Stoch 20→30',c:'mid'});
+  if(a.stack?.count>=3)pills.push({t:`Support Stack ×${a.stack.count}`,c:'ok'});
+  if(a.resStack?.count>=3)pills.push({t:`Resistance Stack ×${a.resStack.count}`,c:'bad'});
+  if(a.volC?.state==='Tight coil'||a.volC?.state==='Contracting')pills.push({t:'Vol Coiling',c:'mid'});
+  let note=a.stage===2&&a.sig?.includes('Buy')
+    ?'Look for pullbacks to the rising 10/20 EMA on declining volume. Primary trend intact above 50 EMA.'
+    :a.stage===2?'Stage 2 structure but signals mixed. Confirm price holds 20 EMA before adding.'
+    :a.stage===1?'"A stock in Stage 1 offers no reason for a trend trader to be involved." — Shannon'
+    :a.stage===3?'MAs flattening near highs — reduce, do not add.'
+    :a.stage===4?'The "slope of hope." Rallies fail at declining MAs. Flat or short only.'
+    :'Need more data for a clean Shannon read.';
+  if(a.adx&&a.adx.value<20&&(a.stage===2||a.stage===4))
+    note+=' ADX is still under 20 — the trend itself isn\'t confirmed yet, so weight this signal accordingly.';
+  if((a.stage===1||a.stage===3)&&a.volC&&(a.volC.state==='Tight coil'||a.volC.state==='Contracting'))
+    note+=' Range is contracting — per Shannon\'s stage cycle, contraction in Stage 1/3 tends to precede the next expansion. Worth watching for the breakout.';
+  if(a.stage===4&&a.resStack&&a.resStack.count>=2)
+    note+=' Resistance is stacked overhead — reinforces the cap on any bounce attempt.';
+  return`<div class="tf-section${tf==='daily'?' vis':''}" data-tf="${tf}">
+<div class="sigrow">
+  <span class="sbadge ${a.sigCls}">${a.sig}</span>
+  <div class="scwrap"><div class="sclbl">Signal strength</div>
+    <div class="sctrk"><div class="scfill" style="width:${sn*100}%;background:${sc}"></div></div>
+  </div>
+</div>
+<div class="stgwrap">
+  <div class="stglbls">
+    <span class="stglbl ${a.stage===1?'on':''}">S1</span><span class="stglbl ${a.stage===2?'on':''}">S2</span>
+    <span class="stglbl ${a.stage===3?'on':''}">S3</span><span class="stglbl ${a.stage===4?'on':''}">S4</span>
+    <span class="stgname" style="color:${SC[a.stage]}">Stage ${a.stage} · ${SN[a.stage]}</span>
+  </div>
+  <div class="stgtrk">
+    <div class="seg seg1 ${a.stage===1?'on':'dim'}"></div><div class="seg seg2 ${a.stage===2?'on':'dim'}"></div>
+    <div class="seg seg3 ${a.stage===3?'on':'dim'}"></div><div class="seg seg4 ${a.stage===4?'on':'dim'}"></div>
+    <div class="stgdot" style="left:calc(${dot}% - 7px);background:${SC[a.stage]}"></div>
+  </div>
+</div>
+<div class="subs">
+  <div class="sub"><div class="slbl">MA Stack</div><div class="sval ${maV[1]}">${maV[0]}</div><div class="snot">${maV[2]}</div></div>
+  <div class="sub"><div class="slbl">Price Structure</div><div class="sval ${stV[1]}">${stV[0]}</div><div class="snot">${stV[2]}</div></div>
+  <div class="sub"><div class="slbl">Volume Ratio</div><div class="sval ${vlV[1]}">${vlV[0]}</div><div class="snot">${vlV[2]}</div></div>
+  <div class="sub"><div class="slbl">vs VWAP</div><div class="sval ${vwV[1]}">${vwV[0]}</div><div class="snot">${vwV[2]}</div></div>
+  <div class="sub"><div class="slbl">TF Alignment</div><div class="sval ${tfV[1]}">${tfV[0]}</div><div class="snot">${tfV[2]}</div></div>
+  <div class="sub"><div class="slbl">Score</div><div class="sval ${a.sc>=25?'bull':a.sc<=-25?'bear':'warn'}">${a.sc>0?'+':''}${a.sc}</div><div class="snot">of ±100</div></div>
+  <div class="sub"><div class="slbl">Stochastic 14-3</div><div class="sval ${stochV[1]}">${stochV[0]}</div><div class="snot">${stochV[2]}</div></div>
+  <div class="sub"><div class="slbl">ADX Trend</div><div class="sval ${adxV[1]}">${adxV[0]}</div><div class="snot">${adxV[2]}</div></div>
+  <div class="sub"><div class="slbl">Support Stack</div><div class="sval ${stackV[1]}">${stackV[0]}</div><div class="snot" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${stackV[2]}</div></div>
+  <div class="sub"><div class="slbl">Resistance Stack</div><div class="sval ${resStackV[1]}">${resStackV[0]}</div><div class="snot" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${resStackV[2]}</div></div>
+  <div class="sub"><div class="slbl">Volatility</div><div class="sval ${volV[1]}">${volV[0]}</div><div class="snot">${volV[2]}</div></div>
+  <div class="sub" style="grid-column:1/-1"><div class="slbl">Stage 2 Freshness</div><div class="sval ${freshV.cls}">${freshV.label}</div><div class="snot">${freshNote}</div></div>
+</div>
+${tradeHTML}
+<div class="expdr" onclick="this.closest('.card').classList.toggle('open')">
+  <span>MA levels &amp; Shannon's read</span><span class="earr">▼</span>
+</div>
+<div class="detail">
+  <div class="dtit">Moving Averages vs ${fmt(a.close)}</div>
+  <table class="matable"><tr><th>Period</th><th>Value</th><th>vs Price</th></tr>${maRows}</table>
+  <div class="dtit">Confirmation</div>
+  <div class="pills">${pills.map(p=>`<span class="pill ${p.c}">${p.t}</span>`).join('')}</div>
+  <div class="dtit">Stage Evidence</div><div class="snote">${a.desc}</div>
+  ${a.stack?.count?`<div class="dtit" style="margin-top:9px">Support Stack (${a.stack.count})</div>
+  <div class="snote">${a.stack.factors.map(f=>`${f.label} @ ${fmt(f.value)}`).join('<br>')}</div>`:''}
+  ${a.resStack?.count?`<div class="dtit" style="margin-top:9px">Resistance Stack (${a.resStack.count})</div>
+  <div class="snote">${a.resStack.factors.map(f=>`${f.label} @ ${fmt(f.value)}`).join('<br>')}</div>`:''}
+  <div class="dtit" style="margin-top:9px">Shannon's Action Note</div>
+  <div class="snote act">${note}</div>
+</div>
+<div class="chart-btn" onclick="toggleChart(this)">
+  <span>Price chart &amp; MAs</span><span class="chart-arr">▼</span>
+</div>
+<div class="chart-svg-wrap"></div>
+</div>`;
+}
+
+function renderCard(ticker){
+  const existing=el('card-'+ticker);
+  const r=ST.data[ticker];
+  const idx=ST.tickers.indexOf(ticker)+1;
+
+  if(!r?.ok||!r.daily){
+    const html=`<div class="ctop">
+      <div class="ctl">
+        <div class="seq">${idx}</div>
+        <div><div class="ticker">${ticker}</div><div class="cname">${NAMES[ticker]||''}</div></div>
+      </div>
+      <div style="font-size:11px;color:${r?'var(--red)':'var(--txt3)'};text-align:right">
+        ${r?r.err||'Error':'Loading…'}
+      </div></div>`;
+    if(existing){existing.className='card';existing.innerHTML=html;}
+    return;
+  }
+
+  const d=r.daily,w=r.weekly;
+  const activeTab=ST.activeTabs[ticker]||'daily';
+  const dStage=d?.stage,wStage=w?.stage;
+  const diverged=wStage!=null&&Math.abs(dStage-wStage)>=2;
+  const activeA=activeTab==='daily'?d:w||d;
+  const borderCls=activeA.sig?.includes('Buy')?'buy-glow':activeA.sig?.includes('Sell')?'sell-glow':'';
+  const wasOpen=existing?.classList.contains('open');
+  const pctCls=d.pct>0?'up':d.pct<0?'dn':'flat';
+
+  const card=document.createElement('div');
+  card.id='card-'+ticker;
+  card.className=`card ${borderCls}${wasOpen?' open':''}`;
+  card.innerHTML=`
+<div class="ctop">
+  <div class="ctl">
+    <div class="seq">${idx}</div>
+    <div><div class="ticker">${ticker}</div><div class="cname">${NAMES[ticker]||''}</div></div>
+  </div>
+  <div><div class="price">${fmt(d.close)}</div><div class="pchg ${pctCls}">${fmtp(d.pct)}</div></div>
+</div>
+${diverged?`<div class="divg">⚠ Daily Stage ${dStage} vs Weekly Stage ${wStage} — significant divergence</div>`:''}
+<div class="tf-tabs">
+  <div class="tf-tab ${activeTab==='daily'?'on-d':''}" onclick="switchTab('${ticker}','daily')">
+    Daily <span class="sbadge ${d.sigCls}" style="padding:2px 6px;font-size:9px">${d.sig}</span>
+    ${activeTab!=='daily'&&diverged?'⚠':''}
+  </div>
+  <div class="tf-tab ${activeTab==='weekly'?'on-w':''}" onclick="switchTab('${ticker}','weekly')">
+    Weekly <span class="sbadge ${w?.sigCls||'s-ld'}" style="padding:2px 6px;font-size:9px">${w?.sig||'—'}</span>
+    ${activeTab==='daily'&&diverged?'⚠':''}
+  </div>
+</div>
+${buildTFSection(d,'daily',dStage,wStage)}
+${buildTFSection(w,'weekly',dStage,wStage)}`;
+
+  if(existing)existing.replaceWith(card);
+  else el('cards').appendChild(card);
+}
+
+function switchTab(ticker,tab){
+  ST.activeTabs[ticker]=tab;
+  const card=el('card-'+ticker);if(!card)return;
+  card.querySelectorAll('.tf-tab').forEach(t=>{
+    t.classList.toggle('on-d',tab==='daily'&&t.textContent.trim().startsWith('Daily'));
+    t.classList.toggle('on-w',tab==='weekly'&&t.textContent.trim().startsWith('Weekly'));
+  });
+  card.querySelectorAll('.tf-section').forEach(s=>s.classList.toggle('vis',s.dataset.tf===tab));
+  const a=tab==='daily'?ST.data[ticker]?.daily:ST.data[ticker]?.weekly;
+  if(a){
+    card.classList.remove('buy-glow','sell-glow');
+    if(a.sig?.includes('Buy'))card.classList.add('buy-glow');
+    if(a.sig?.includes('Sell'))card.classList.add('sell-glow');
+  }
+}
+
+function renderWatchlist(){
+  const container=el('cards');
+  const orderSet=new Set(ST.tickers);
+  [...container.children].forEach(c=>{
+    const t=c.id?.replace('card-','');
+    if(t&&!orderSet.has(t))c.remove();
+  });
+  for(const t of ST.tickers){
+    let c=el('card-'+t);
+    if(!c){
+      c=document.createElement('div');
+      c.id='card-'+t;c.className='card pulsing';
+      const idx=ST.tickers.indexOf(t)+1;
+      c.innerHTML=`<div class="ctop"><div class="ctl"><div class="seq">${idx}</div><div><div class="ticker">${t}</div><div class="cname">${NAMES[t]||''}</div></div></div><div style="color:var(--txt3);font-size:11px">Waiting…</div></div>`;
+    }
+    container.appendChild(c);
+  }
+}
+
+let sigSortMode = 'score'; // 'score' | 'fresh'
+let sigFreshOnly = false;   // filter: only show fresh Stage 2 (both TF strong)
+
+function setSigSort(mode) {
+  sigSortMode = mode;
+  renderSignals();
+}
+function toggleFreshFilter() {
+  sigFreshOnly = !sigFreshOnly;
+  renderSignals();
+}
+
+function renderSignals(){
+  const container=el('sigContent');if(!container)return;
+  let all=ST.tickers
+    .map(t=>({t,r:ST.data[t]}))
+    .filter(x=>x.r?.ok&&x.r.daily);
+
+  if(!all.length){
+    container.innerHTML='<div style="text-align:center;padding:40px;color:var(--txt3)">Load watchlist first.</div>';
+    return;
+  }
+
+  // Optional filter: only Stage 2 stocks with Buy/Strong Buy on BOTH timeframes
+  if (sigFreshOnly) {
+    all = all.filter(x => {
+      const d=x.r.daily, w=x.r.weekly;
+      return d?.stage===2 && d.sig?.includes('Buy') && w?.stage===2 && w.sig?.includes('Buy');
+    });
+  }
+
+  // Sort by score (default) or freshness (fewest bars since Stage 2 turn = freshest first)
+  if (sigSortMode === 'fresh') {
+    all.sort((a,b) => {
+      const ba = a.r.daily.bars2, bb = b.r.daily.bars2;
+      if (ba==null && bb==null) return 0;
+      if (ba==null) return 1;  // not in stage 2 — push to bottom
+      if (bb==null) return -1;
+      return ba - bb; // fewest bars = freshest = first
+    });
+  } else {
+    all.sort((a,b)=>(b.r.daily.sc||0)-(a.r.daily.sc||0));
+  }
+
+  const cnt={sb:0,b:0,n:0,s:0,ss:0};
+  all.forEach(x=>{
+    const s=x.r.daily.sig;
+    if(s==='Strong Buy')cnt.sb++;else if(s==='Buy')cnt.b++;
+    else if(s==='Neutral')cnt.n++;else if(s==='Sell')cnt.s++;else cnt.ss++;
+  });
+
+  container.innerHTML=`
+<div class="sv-card">
+  <div class="sv-hdr">Signal Summary — ${all.length} tickers${sigFreshOnly?' (fresh Stage 2 only)':''}</div>
+  <div class="distbar" style="margin-top:11px">
+    <div style="flex:${cnt.sb};background:var(--green)"></div>
+    <div style="flex:${cnt.b};background:#56D364"></div>
+    <div style="flex:${cnt.n};background:var(--amber)"></div>
+    <div style="flex:${cnt.s};background:#F0883E"></div>
+    <div style="flex:${cnt.ss};background:var(--red)"></div>
+  </div>
+  <div style="display:flex;gap:6px;padding:0 13px 13px">
+    <div class="chip ${sigSortMode==='score'?'pinned':'free'}" style="cursor:pointer" onclick="setSigSort('score')">Sort: Score</div>
+    <div class="chip ${sigSortMode==='fresh'?'pinned':'free'}" style="cursor:pointer" onclick="setSigSort('fresh')">Sort: Freshest</div>
+    <div class="chip ${sigFreshOnly?'pinned':'free'}" style="cursor:pointer" onclick="toggleFreshFilter()">${sigFreshOnly?'✓ ':''}Fresh S2 only</div>
+  </div>
+</div>
+<div class="sv-card">
+  ${all.map(x=>{
+    const d=x.r.daily,w=x.r.weekly;
+    const dv=w&&Math.abs((d?.stage||0)-(w?.stage||0))>=2;
+    const freshTag = d?.bars2!=null ? `<span style="color:var(--txt3);font-size:9px"> · ${d.bars2}d</span>` : '';
+    return`<div class="sv-row" onclick="goToCard('${x.t}')">
+      <div>
+        <div class="sv-ticker">${x.t} ${dv?'<span style="color:var(--amber)">⚠</span>':''}${freshTag}</div>
+        <div class="sv-stage" style="color:${SC[d?.stage||0]}">D:S${d?.stage||'?'} · W:S${w?.stage||'?'}</div>
+      </div>
+      <div class="sv-right">
+        <div class="sv-price">${fmt(d?.close)}</div>
+        <div style="display:flex;flex-direction:column;gap:3px;align-items:flex-end">
+          <span class="sbadge ${d?.sigCls||'s-n'}" style="padding:2px 7px;font-size:9px">D: ${d?.sig||'—'}</span>
+          <span class="sbadge ${w?.sigCls||'s-ld'}" style="padding:2px 7px;font-size:9px">W: ${w?.sig||'—'}</span>
+        </div>
+      </div>
+    </div>`;
+  }).join('')}
+</div>`;
+}
+
+function goToCard(t){
+  switchView('wl');
+  setTimeout(()=>el('card-'+t)?.scrollIntoView({behavior:'smooth',block:'center'}),80);
+}
+
+// ═══════════════════════════════════════════════════════════
+//  VIEW / UI
+// ═══════════════════════════════════════════════════════════
+function switchView(v){
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('on',i===(v==='wl'?0:1)));
+  el('wlMain').style.display =v==='wl'?'':'none';
+  el('sigMain').style.display=v==='sig'?'':'none';
+  if(v==='sig')renderSignals();
+}
+
+// ── Key Manager ───────────────────────────────────────────
+function openKM(){
+  renderKeySlots();
+  el('kmOverlay').classList.add('open');
+}
+function closeKM(){ el('kmOverlay').classList.remove('open'); }
+
+function renderKeySlots(){
+  // Show 4 slots always — filled ones show the saved key, empty ones show placeholder
+  const slots = el('keySlots');
+  slots.innerHTML = Array.from({length:MAX_KEYS},(_,i)=>{
+    const saved = ST.apiKeys[i]?.key || '';
+    return`<div class="key-slot">
+      <span class="key-slot-lbl">Key ${i+1}</span>
+      <input class="finp key-slot-inp" type="text" id="keySlot${i}"
+             value="${saved}" placeholder="Paste API key…"
+             autocomplete="off" spellcheck="false" style="font-size:12px">
+      <div class="key-slot-rm" onclick="el('keySlot${i}').value=''" title="Clear">×</div>
+    </div>`;
+  }).join('');
+}
+
+function saveKeys(){
+  ST.apiKeys = [];
+  for(let i=0;i<MAX_KEYS;i++){
+    const val=(el(`keySlot${i}`)?.value||'').trim();
+    if(val) ST.apiKeys.push({key:val,label:`Key ${i+1}`});
+  }
+  saveState();
+  closeKM();
+  if(ST.apiKeys.length){
+    showBanner(`${ST.apiKeys.length} key${ST.apiKeys.length>1?'s':''} saved — tap ▶ to load.`,'ok');
+  }
+}
+
+// ── Settings ──────────────────────────────────────────────
+let _tickersAtOpen=null;
+
+function openSettings(){
+  _tickersAtOpen=new Set(ST.tickers);
+  renderChips();
+  renderPass1Status();
+  el('settingsOverlay').classList.add('open');
+}
+function closeSettings(){ el('settingsOverlay').classList.remove('open'); }
+
+function renderPass1Status(){
+  const box=el('pass1Status');
+  if(!box)return;
+  if(!ST.pass1Meta){box.textContent='Not loaded yet.';return;}
+  const{asOf,universeSize,survivorCount,loadedAt}=ST.pass1Meta;
+  const asOfStr=asOf?new Date(asOf).toLocaleString():'unknown';
+  const loadedStr=loadedAt?new Date(loadedAt).toLocaleString():'unknown';
+  box.innerHTML=`Pass 1 as of <strong>${asOfStr}</strong> — ${survivorCount} of ${universeSize} survived.<br>Last pulled into this dashboard: ${loadedStr}.`;
+}
+
+function renderChips(){
+  el('chipsWrap').innerHTML=ST.tickers.map((t,i)=>`
+    <div class="chip">
+      <span class="chip-num">${i+1}</span>${t}
+      <span class="chip-rm" onclick="removeTicker('${t}')">×</span>
+    </div>`).join('');
+  // Load preview
+  const k=Math.max(1,keys().length);
+  const chunkSize=Math.ceil(ST.tickers.length/k);
+  const batches=Array.from({length:k},(_,ki)=>ST.tickers.slice(ki*chunkSize,(ki+1)*chunkSize)).filter(b=>b.length);
+  const perKey=Math.ceil(ST.tickers.length/k)*2;
+  const warn=perKey>8?`<br><span style="color:var(--amber)">⚠ ${perKey} credits/key &gt; 8/min limit — add more keys or reduce tickers</span>`:'';
+  el('loadPreview').innerHTML=batches.map((b,ki)=>
+    `<strong>Key ${ki+1}:</strong> ${b.join(', ')} (${b.length*2} credits)`
+  ).join('<br>')+`<br><span style="color:var(--txt3)">${ST.tickers.length} tickers · ${ST.tickers.length*2} total credits · ${k} key${k>1?'s':''}</span>${warn}`;
+}
+
+function removeTicker(t){
+  ST.tickers=ST.tickers.filter(x=>x!==t);
+  delete ST.data[t];
+  renderChips();
+}
+
+function addTicker(){
+  const inp=el('tickerIn');
+  const val=inp.value.trim().toUpperCase();
+  if(!val)return;
+  if(ST.tickers.length>=MAX_TICKERS){alert(`Maximum ${MAX_TICKERS} tickers.`);return;}
+  if(ST.tickers.includes(val)){alert(`${val} already in watchlist.`);return;}
+  ST.tickers.push(val);
+  inp.value='';
+  renderChips();
+}
+
+// Pulls Pass 1's daily survivor list straight from the repo (no server, no
+// GitHub Pages needed — raw.githubusercontent.com already sends permissive
+// CORS headers). Mirrors importCSV's replace-or-merge UX for consistency.
+async function loadPass1Survivors(){
+  const btn=el('pass1Btn');
+  const orig=btn?.textContent;
+  if(btn){btn.disabled=true;btn.textContent='Loading…';}
+  try{
+    // Cache-bust: GitHub's edge caches raw.githubusercontent.com responses
+    // for ~5min, and a manually re-triggered scan shouldn't have to wait it out.
+    const res=await timedFetch(`${PASS1_URL}?_=${Date.now()}`,15000);
+    if(!res.ok)throw new Error(`HTTP ${res.status}`);
+    const j=await res.json();
+    if(!Array.isArray(j.survivors))throw new Error('Unexpected response shape — no survivors array.');
+    let tickers=[...new Set(j.survivors.map(s=>s.t).filter(Boolean))];
+    if(!tickers.length){alert('Pass 1 returned zero survivors — nothing to load.');return;}
+    if(tickers.length>MAX_TICKERS){
+      alert(`Pass 1 has ${tickers.length} survivors — keeping first ${MAX_TICKERS}.`);
+      tickers=tickers.slice(0,MAX_TICKERS);
+    }
+    const asOfStr=j.asOf?new Date(j.asOf).toLocaleString():'unknown time';
+    const action=ST.tickers.length
+      ?confirm(`Pass 1 as of ${asOfStr} — ${tickers.length} survivors (of ${j.universeSize??'?'} scanned).\n\nReplace current ${ST.tickers.length} tickers with these?\n\nOK = Replace all\nCancel = Add new ones only`)
+      :true;
+    if(action){
+      ST.tickers=tickers;
+    }else{
+      const existing=new Set(ST.tickers);
+      const added=tickers.filter(t=>!existing.has(t));
+      const room=MAX_TICKERS-ST.tickers.length;
+      if(!added.length){alert('No new survivors to add — all already in watchlist.');return;}
+      ST.tickers=[...ST.tickers,...added.slice(0,room)];
+      if(added.length>room)alert(`Added ${room} of ${added.length} new survivors (watchlist limit is ${MAX_TICKERS}).`);
+    }
+    ST.pass1Meta={asOf:j.asOf,universeSize:j.universeSize,survivorCount:j.survivorCount,loadedAt:Date.now()};
+    saveState();
+    renderChips();
+    renderPass1Status();
+    showBanner(`Loaded ${ST.tickers.length} tickers from Pass 1 (as of ${asOfStr}).`,'ok');
+  }catch(e){
+    showBanner(`Pass 1 load failed: ${e.message}`,'err');
+  }finally{
+    if(btn){btn.disabled=false;btn.textContent=orig;}
+  }
+}
+
+function exportCSV() {
+  // Export current watchlist as a single-column CSV
+  const csv  = 'ticker\n' + ST.tickers.join('\n');
+  const blob = new Blob([csv], {type:'text/csv'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = 'watchlist.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importCSV(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const text  = e.target.result;
+    const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+    if (!lines.length) { alert('CSV is empty.'); return; }
+
+    // Detect if first line is a header — skip if it doesn't look like a ticker
+    // (tickers are 1-5 uppercase letters; headers like "ticker","symbol","name" aren't)
+    let tickers = [];
+    const firstUpper = lines[0].toUpperCase();
+    const isHeader   = /^(TICKER|SYMBOL|NAME|COMPANY|#)/.test(firstUpper);
+    const dataLines  = isHeader ? lines.slice(1) : lines;
+
+    for (const line of dataLines) {
+      // Handle CSV rows — take first column only, strip quotes
+      const col = line.split(',')[0].replace(/['"]/g,'').trim().toUpperCase();
+      if (col && /^[A-Z]{1,5}$/.test(col)) tickers.push(col);
+    }
+
+    // Deduplicate
+    tickers = [...new Set(tickers)];
+
+    if (!tickers.length) { alert('No valid ticker symbols found in CSV.'); return; }
+    if (tickers.length > MAX_TICKERS) {
+      const kept = tickers.slice(0, MAX_TICKERS);
+      alert(`CSV has ${tickers.length} tickers — keeping first ${MAX_TICKERS}.`);
+      tickers = kept;
+    }
+
+    // Merge or replace — ask user
+    const action = ST.tickers.length
+      ? confirm(`Replace current ${ST.tickers.length} tickers with ${tickers.length} from CSV?\n\nOK = Replace all\nCancel = Add new ones only`)
+      : true;
+
+    if (action) {
+      ST.tickers = tickers;
+    } else {
+      const existing = new Set(ST.tickers);
+      const added    = tickers.filter(t => !existing.has(t));
+      const room     = MAX_TICKERS - ST.tickers.length;
+      if (!added.length) { alert('No new tickers to add — all already in watchlist.'); return; }
+      ST.tickers = [...ST.tickers, ...added.slice(0, room)];
+      if (added.length > room) alert(`Added ${room} of ${added.length} new tickers (watchlist limit is ${MAX_TICKERS}).`);
+    }
+
+    // Reset file input so same file can be re-imported
+    input.value = '';
+    renderChips();
+    alert(`Loaded ${ST.tickers.length} tickers from CSV.`);
+  };
+  reader.readAsText(file);
+}
+
+function saveSettings(){
+  const newT=ST.tickers.filter(t=>!_tickersAtOpen?.has(t));
+  for(const t of Object.keys(ST.data)){
+    if(!ST.tickers.includes(t))delete ST.data[t];
+  }
+  saveState();
+  closeSettings();
+  renderWatchlist();
+  renderSignals();
+  if(newT.length) doLoad(newT);
+  else if(!Object.values(ST.data).some(v=>v?.ok&&v?.daily)) initialLoad();
+}
+
+// ═══════════════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════════════
+loadState();
+startClock();
+renderWatchlist();
+
+let hasCached=false;
+for(const t of ST.tickers){
+  if(ST.data[t]?.ok&&ST.data[t]?.daily){renderCard(t);hasCached=true;}
+}
+if(hasCached)renderSignals();
+
+if(!keys().length){
+  showBanner('Welcome — tap 🔑 Keys to add your Twelve Data API key, then tap ▶ to load.','info');
+}else{
+  showBanner('Tap ▶ to start loading data.','info');
+}
+</script>
+</body>
+</html>
