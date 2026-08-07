@@ -18,7 +18,10 @@ const LOOKBACK_DAYS = 260;          // calendar days to look back on first run
 const RATE_LIMIT_MS = 13000;        // ~4.6 req/min, safely under the 5/min cap
 const HISTORY_PATH = 'data/history.json';
 const OUTPUT_PATH  = 'data/pass1.json';
+const EXCLUDED_PATH = 'data/universe-excluded.json';
 const MAX_HISTORY_PER_TICKER = 260; // prune old sessions to keep file size sane
+const EXCLUDE_RETRY_DAYS = 7;       // re-attempt an excluded ticker at most this often
+const CHECKPOINT_EVERY = 20;        // save history.json every N days during a backfill
 
 // TODO: replace with your actual universe (e.g. a static Russell 3000 ticker
 // list committed to the repo). Grouped-daily returns EVERYTHING (incl. OTC/
@@ -42,15 +45,32 @@ function isWeekday(d) {
   return day !== 0 && day !== 6;
 }
 
-async function fetchGroupedDay(dateStr) {
+async function fetchGroupedDay(dateStr, attempt = 1) {
   const url = `${BASE}/v2/aggs/grouped/locale/us/market/stocks/${dateStr}?adjusted=true&apiKey=${API_KEY}`;
-  const res = await fetch(url);
+  let res;
+  try {
+    res = await fetch(url);
+  } catch (e) {
+    // Transient network error (DNS blip, socket reset, timeout) — worth a
+    // few retries rather than losing an entire long-running backfill.
+    if (attempt >= 3) throw e;
+    console.log(`Fetch error for ${dateStr} (attempt ${attempt}): ${e.message} — retrying in 15s...`);
+    await wait(15000);
+    return fetchGroupedDay(dateStr, attempt + 1);
+  }
   if (res.status === 429) {
     console.log('Rate limited — backing off 60s...');
     await wait(60000);
-    return fetchGroupedDay(dateStr);
+    return fetchGroupedDay(dateStr, attempt);
   }
-  if (!res.ok) throw new Error(`HTTP ${res.status} for ${dateStr}`);
+  if (!res.ok) {
+    if (res.status >= 500 && attempt < 3) {
+      console.log(`HTTP ${res.status} for ${dateStr} (attempt ${attempt}) — retrying in 15s...`);
+      await wait(15000);
+      return fetchGroupedDay(dateStr, attempt + 1);
+    }
+    throw new Error(`HTTP ${res.status} for ${dateStr}`);
+  }
   const j = await res.json();
   // Polygon returns resultsCount:0 for weekends/holidays — treat as "no session"
   if (!j.results?.length) return null;
@@ -162,17 +182,41 @@ function runFilters(history) {
   return survivors;
 }
 
+async function loadExcluded() {
+  try {
+    return JSON.parse(await fs.readFile(EXCLUDED_PATH, 'utf8'));
+  } catch {
+    return {}; // { TICKER: "YYYY-MM-DD" (date of last failed backfill attempt) }
+  }
+}
+
+async function saveExcluded(excluded) {
+  await fs.writeFile(EXCLUDED_PATH, JSON.stringify(excluded, null, 2));
+}
+
 // Find universe tickers that don't have enough history yet — e.g. tickers
 // added when the universe was expanded. datesToBackfill() only looks at the
 // *latest* date across existing history and won't catch this: if the rest
 // of the universe is already caught up to yesterday, it'll compute an empty
 // catch-up range and these new tickers get silently skipped forever.
-function tickersNeedingBackfill(universe, history, minBars) {
+//
+// Tickers that Polygon will never return data for (delisted/merged, a
+// ticker-format mismatch, an N-PORT filing quirk) would otherwise re-trigger
+// the full ~40-minute backfill loop every single run forever. Once a ticker
+// fails a backfill attempt it's recorded in data/universe-excluded.json and
+// skipped for EXCLUDE_RETRY_DAYS before being tried again.
+function tickersNeedingBackfill(universe, history, minBars, excluded, today) {
   const needs = new Set();
   if (!universe) return needs;
   for (const t of universe) {
     const rows = history[t];
-    if (!rows || rows.length < minBars) needs.add(t);
+    if (rows && rows.length >= minBars) continue;
+    const lastAttempt = excluded[t];
+    if (lastAttempt) {
+      const daysSince = (today - new Date(lastAttempt)) / 86400000;
+      if (daysSince < EXCLUDE_RETRY_DAYS) continue;
+    }
+    needs.add(t);
   }
   return needs;
 }
@@ -186,6 +230,7 @@ async function backfillNewTickers(needBackfill, history) {
   yesterday.setUTCDate(yesterday.getUTCDate() - 1);
 
   const cursor = new Date(start);
+  let daysFetched = 0;
   while (cursor <= yesterday) {
     if (isWeekday(cursor)) {
       const dateStr = fmtDate(cursor);
@@ -201,6 +246,14 @@ async function backfillNewTickers(needBackfill, history) {
       } else {
         console.log(`  (no session — market closed)`);
       }
+      daysFetched++;
+      // Checkpoint periodically — a backfill can take ~40min across ~180
+      // requests, and a late transient failure shouldn't lose all of it.
+      if (daysFetched % CHECKPOINT_EVERY === 0) {
+        await fs.mkdir('data', { recursive: true });
+        await fs.writeFile(HISTORY_PATH, JSON.stringify(history));
+        console.log(`  (checkpoint saved after ${daysFetched} day(s))`);
+      }
       await wait(RATE_LIMIT_MS);
     }
     cursor.setUTCDate(cursor.getUTCDate() + 1);
@@ -215,14 +268,28 @@ async function backfillNewTickers(needBackfill, history) {
 async function main() {
   const universe = await loadUniverse();
   const history = await loadHistory();
+  const excluded = await loadExcluded();
+  const today = new Date();
 
-  const needBackfill = tickersNeedingBackfill(universe, history, 55);
+  const needBackfill = tickersNeedingBackfill(universe, history, 55, excluded, today);
   if (needBackfill.size > 0) {
     await backfillNewTickers(needBackfill, history);
     // Save progress immediately — this pass can take a while, and we don't
     // want to lose a near-complete backfill if the incremental step below fails.
     await fs.mkdir('data', { recursive: true });
     await fs.writeFile(HISTORY_PATH, JSON.stringify(history));
+
+    // Anything that still doesn't have enough bars after a full lookback
+    // attempt isn't going to resolve itself tomorrow (delisted, merged, a
+    // ticker Polygon doesn't recognize) — record it so it stops forcing a
+    // ~40-minute backfill on every future run.
+    const todayStr = fmtDate(today);
+    for (const t of needBackfill) {
+      const rows = history[t];
+      if (!rows || rows.length < 55) excluded[t] = todayStr;
+      else delete excluded[t];
+    }
+    await saveExcluded(excluded);
   }
 
   const dates = datesToBackfill(history);

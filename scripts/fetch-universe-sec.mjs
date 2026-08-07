@@ -89,7 +89,7 @@ function extractTicker(holding) {
 }
 
 function normalizeTicker(raw) {
-  return raw.replace(/\./g, '-'); // BRK.B -> BRK-B for Polygon
+  return raw.replace(/\//g, '.'); // SEC N-PORT uses slash for share classes (BRK/B); Polygon expects dot (BRK.B)
 }
 
 async function main() {

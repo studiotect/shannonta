@@ -860,7 +860,7 @@
     "cusip": "36467W109"
   },
   {
-    "ticker": "LEN/B",
+    "ticker": "LEN.B",
     "name": "Lennar Corp.",
     "cusip": 526057302
   },
@@ -2395,7 +2395,7 @@
     "cusip": 501044101
   },
   {
-    "ticker": "HEI/A",
+    "ticker": "HEI.A",
     "name": "Heico Corp",
     "cusip": 422806208
   },
@@ -2520,7 +2520,7 @@
     "cusip": "05550J101"
   },
   {
-    "ticker": "UHAL/B",
+    "ticker": "UHAL.B",
     "name": "U-Haul Holding Co.",
     "cusip": 23586506
   },
@@ -2680,7 +2680,7 @@
     "cusip": "58450V104"
   },
   {
-    "ticker": "BF/A",
+    "ticker": "BF.A",
     "name": "Brown-Forman Corp.",
     "cusip": 115637100
   },
@@ -3300,7 +3300,7 @@
     "cusip": "47103J105"
   },
   {
-    "ticker": "BF/B",
+    "ticker": "BF.B",
     "name": "Brown-Forman Corp.",
     "cusip": 115637209
   },
@@ -4770,7 +4770,7 @@
     "cusip": 404251100
   },
   {
-    "ticker": "CWEN/A",
+    "ticker": "CWEN.A",
     "name": "Clearway Energy Inc",
     "cusip": "18539C105"
   },
@@ -6625,7 +6625,7 @@
     "cusip": "34354P105"
   },
   {
-    "ticker": "MOG/A",
+    "ticker": "MOG.A",
     "name": "Moog Inc.",
     "cusip": 615394202
   },
@@ -6885,7 +6885,7 @@
     "cusip": 832696405
   },
   {
-    "ticker": "BRK/B",
+    "ticker": "BRK.B",
     "name": "Berkshire Hathaway Inc.",
     "cusip": 84670702
   },
@@ -10190,7 +10190,7 @@
     "cusip": "55616P104"
   },
   {
-    "ticker": "GEF/B",
+    "ticker": "GEF.B",
     "name": "Greif, Inc.",
     "cusip": 397624206
   },
