@@ -1035,7 +1035,7 @@ function styleFit(a){
   const fits=[];
   if(a.stage===1&&a.conf>=50)fits.push(1);
   if(a.stage===2&&a.bars2!=null&&a.bars2<=30&&a.stoch?.signal?.startsWith('40→50')&&
-     (a.stack?.count||0)>=2&&a.stoch.room70>0&&(a.adx?.value??0)>=20)fits.push(2);
+     (a.stack?.count||0)>=2&&a.stoch.room70>0&&(a.adx?.value??0)>=20&&a.close>a.m200)fits.push(2);
   return fits;
 }
 // Stage → action mapping, straight out of the brief's own table.
