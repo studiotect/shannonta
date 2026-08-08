@@ -499,6 +499,7 @@ function startClock() {
 //   • Up to 300 tickers supported (Pass 2 survivor-list scale)
 
 const TICKERS_PER_KEY_PER_MIN = 4;
+const MAX_TICKER_RETRIES = 3; // give up on a ticker after this many failed rounds — don't retry forever
 
 // Wait until the next :00 minute boundary + 500ms safety margin
 async function waitForNextMinute(label) {
@@ -572,6 +573,7 @@ async function doLoad(onlyTickers) {
   let queue = [...(onlyTickers || ST.tickers)];
   const slotsPerMinute = k.length * TICKERS_PER_KEY_PER_MIN; // e.g. 2 keys × 4 = 8/min
   let round = 1;
+  const retryCounts = {}; // ticker -> consecutive failed rounds, so bad symbols stop burning credits
 
   while (queue.length > 0 && !ST.stopFlag) {
     // Take one slot per key (4 tickers each) from the front of the queue
@@ -594,10 +596,28 @@ async function doLoad(onlyTickers) {
     const results = await Promise.all(keySlots.map(s => loadRound(s.key, s.tickers, s.label)));
     const failed  = results.flat();
 
-    // Any failed tickers go back to the front of the queue for retry
+    // Any failed tickers go back to the front of the queue for retry — but
+    // only up to MAX_TICKER_RETRIES. Past that, the ticker is dropped for
+    // this session instead of burning a credit every minute forever.
     if (failed.length) {
-      setStatus(`${failed.length} ticker${failed.length>1?'s':''} failed — will retry next round`);
-      queue = [...failed, ...queue];
+      const retry = [], gaveUp = [];
+      for (const t of failed) {
+        retryCounts[t] = (retryCounts[t] || 0) + 1;
+        if (retryCounts[t] > MAX_TICKER_RETRIES) {
+          gaveUp.push(t);
+          ST.data[t] = {ok:false, err:`Failed ${retryCounts[t]} times — gave up`, ts:Date.now()};
+        } else {
+          retry.push(t);
+        }
+      }
+      if (gaveUp.length) {
+        console.warn('Gave up on tickers after repeated failures:', gaveUp);
+        gaveUp.forEach(renderCard);
+      }
+      if (retry.length) {
+        setStatus(`${retry.length} ticker${retry.length>1?'s':''} failed — will retry next round`);
+        queue = [...retry, ...queue];
+      }
     }
 
     round++;
