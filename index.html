@@ -1065,8 +1065,8 @@ function analyze(daily,weekly,quote,mode){
   let wStage=null;
   if(sec?.length>=55){
     const wc=sec.map(c=>c.c);
-    wStage=detectStage(wc[wc.length-1],ema(wc,10),ema(wc,20),ema(wc,50),
-      maSlope(emaSeries(wc,50),6),structure(wc,20),volRatio(sec,20)).stage;
+    wStage=detectStage(wc[wc.length-1],ema(wc,10),ema(wc,20),ema(wc,40),
+      maSlope(emaSeries(wc,40),6),structure(wc,20),volRatio(sec,20)).stage;
   }
   // Freshness — only computed on the daily timeframe (pri=daily unless investor mode)
   const bars2 = barsSinceStage2(cls);
