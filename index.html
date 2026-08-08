@@ -704,6 +704,13 @@ function volRatio(c,lb=20){
   const au=uc?uv/uc:0,ad=dc?dv/dc:0;
   return{ratio:ad?au/ad:1};
 }
+// Rolling N-day VWAP. NOTE: this is a practical approximation, not Shannon's
+// literal VWAP — the book anchors VWAP to a specific session (intraday) or
+// a specific period (e.g. a short-interest reporting window for squeeze
+// analysis), not a rolling trailing window. A true session VWAP needs
+// intraday data, which this daily-bar pipeline doesn't have. Treat this as
+// "average price over the trailing N days," directionally useful but not
+// a literal reproduction of the book's VWAP concept.
 function vwap(c,lb=20){
   const r=c.slice(-lb);let tp=0,vol=0;
   for(const x of r){const t=(x.h+x.l+x.c)/3;tp+=t*x.v;vol+=x.v;}
@@ -884,6 +891,27 @@ function volContraction(c,period=14,baseLookback=50){
   return{atrPct:now,baseline,ratio,state};
 }
 
+// Pre-Breakout Watch — Stage 1 ONLY. This is the one signal in the whole
+// engine that genuinely fires BEFORE Stage 2 exists. Freshness, the
+// stochastic 40→50 continuation cross, and support-stack-as-stop all
+// require a confirmed bullish MA stack to produce anything (see
+// barsSinceStage2, styleFit, calcTrade) — they grade the QUALITY of an
+// entry into an already-confirmed Stage 2, not whether Stage 2 is coming.
+//
+// This combines the three tells Shannon names explicitly in the "stalking
+// the stock" section: "look closely at increasing volume, higher lows,
+// and more frequent tests of short-term resistance." No new indicators —
+// just volContraction + structure + volRatio, already computed, combined
+// into one confluence count (same pattern as supportStack).
+function preBreakoutWatch(stage,volC,struct,vr){
+  if(stage!==1)return null;
+  const factors=[];
+  if(volC&&(volC.state==='Tight coil'||volC.state==='Contracting'))factors.push('Range contracting');
+  if(struct==='hhhl')factors.push('Higher lows forming');
+  if(vr?.ratio>1.1)factors.push('Volume increasing');
+  return{count:factors.length,factors};
+}
+
 function detectStage(close,m10,m20,m50,sl50,struct,vr){
   if(!m10||!m20||!m50)return{stage:0,conf:0,desc:'Insufficient data.'};
   const bull=m10>m20&&m20>m50,bear=m10<m20&&m20<m50;
@@ -922,6 +950,15 @@ function scoreSignal(a){
   if(a.vwap&&a.close)sc+=a.close>a.vwap*1.01?5:a.close<a.vwap*.99?-5:0;
   if(a.stage===2&&a.pq>0.6)sc+=8;
   if(a.wStage!=null)sc+=a.wStage===a.stage?7:a.wStage===4&&a.stage===2?-10:0;
+  // 200 SMA — Shannon's own "CONFIRMATION" column (Fig 10.4), a 4th average
+  // for "further confirmation of the longer-term trend." Modest weight,
+  // same pattern as the weekly-alignment bonus above. Only meaningful when
+  // there's a trend to confirm (Stage 2/4) — irrelevant in the range-bound
+  // Stage 1/3 context, so left out there.
+  if(a.m200&&a.close){
+    if(a.stage===2)sc+=a.close>a.m200?5:-5;
+    else if(a.stage===4)sc+=a.close<a.m200?-5:5;
+  }
   // Stochastic — only rewarded in the Style 2 continuation context (a
   // 40→50 cross inside a Stage 2 uptrend), and only once ADX shows some
   // trend strength — mirrors "ADX gates stochastic signals" from the brief.
@@ -1086,9 +1123,10 @@ function analyze(daily,weekly,quote,mode){
   const stack    = supportStack(pri,close,m20,m20s,m50,m50s,vw);
   const resStack = resistanceStack(pri,close,m20,m20s,m50,m50s,vw);
   const volC     = volContraction(pri);
+  const preBreak = preBreakoutWatch(stage,volC,struct,vr);
 
   const a={close,chg:quote.change,pct:quote.pct,m10,m20,m50,m200,mat,struct,vr,vwap:vw,pq,
-           stage,conf,desc,wStage,bars2,stoch,adx,stack,resStack,volC};
+           stage,conf,desc,wStage,bars2,stoch,adx,stack,resStack,volC,preBreak};
   Object.assign(a,scoreSignal(a));
   a.trade=calcTrade(a,daily);
   a.styleFit=styleFit(a);
@@ -1322,8 +1360,29 @@ function buildTFSection(a,tf,dStage,wStage){
     if(Math.abs(os-a.stage)===1)return['Near','warn',`D:S${dStage} W:S${wStage}`];
     return['Diverged','bear',`D:S${dStage} W:S${wStage}`];
   })();
-  const freshV = freshnessLabel(a.bars2);
-  const freshNote = freshV.note + ((a.stage===2&&a.adx&&a.adx.value<20)?' · ADX unconfirmed':'');
+  // Bottom summary tile — stage-aware, one job at a time. Stage 1 shows
+  // Pre-Breakout Watch (the only genuinely BEFORE-Stage-2 signal). Stage 2
+  // shows Entry Quality: Freshness plus whether stochastic/stack actually
+  // confirm it's a Style-2-grade entry, not just a bare day-count. Neither
+  // question applies in Stage 3/4, so that's shown plainly rather than
+  // padded with an irrelevant reading.
+  const summaryV=(()=>{
+    if(a.stage===1){
+      const pb=a.preBreak;
+      if(!pb)return{label:'Summary',cls:'muted',val:'—',note:'Insufficient data'};
+      const cls=pb.count>=2?'bull':pb.count===1?'warn':'muted';
+      return{label:'Pre-Breakout Watch',cls,val:`${pb.count} of 3`,
+        note:pb.count?pb.factors.join(' · '):'None of Shannon\'s "stalking" tells present yet'};
+    }
+    if(a.stage===2){
+      const freshV=freshnessLabel(a.bars2);
+      const styleOk=a.styleFit?.includes(2);
+      const note=freshV.note+(styleOk?' · Stoch + stack confirm a Style 2 entry':
+        a.stoch?.signal?.startsWith('40→50')?' · Stoch cross present, stack/ADX not fully aligned':' · Waiting on stoch 40→50 cross');
+      return{label:'Stage 2 Entry Quality',cls:freshV.cls,val:freshV.label,note};
+    }
+    return{label:'Summary',cls:'muted',val:'—',note:`Not applicable in Stage ${a.stage}`};
+  })();
   const stochV=(()=>{
     if(!a.stoch)return['—','muted','Insufficient data'];
     const cls=a.stoch.zone==='Overbought'||a.stoch.zone==='Oversold'?'warn':a.stoch.rising?'bull':'bear';
@@ -1346,9 +1405,9 @@ function buildTFSection(a,tf,dStage,wStage){
   })();
   const volV=(()=>{
     if(!a.volC)return['—','muted','Insufficient data'];
-    const preBreak=(a.stage===1||a.stage===3)&&(a.volC.state==='Tight coil'||a.volC.state==='Contracting');
-    const cls=a.volC.state==='Tight coil'?(preBreak?'bull':'warn'):a.volC.state==='Contracting'?'warn':a.volC.state==='Expanding'?'bull':'muted';
-    return[a.volC.state,cls,`ATR ${a.volC.ratio.toFixed(2)}x baseline${preBreak?' · Pre-breakout watch':''}`];
+    const contracting=(a.stage===1||a.stage===3)&&(a.volC.state==='Tight coil'||a.volC.state==='Contracting');
+    const cls=a.volC.state==='Tight coil'?(contracting?'bull':'warn'):a.volC.state==='Contracting'?'warn':a.volC.state==='Expanding'?'bull':'muted';
+    return[a.volC.state,cls,`ATR ${a.volC.ratio.toFixed(2)}x baseline${contracting?' · Range coiling':''}`];
   })();
   const tr=a.trade;
   const tradeHTML=!tr
@@ -1390,21 +1449,26 @@ function buildTFSection(a,tf,dStage,wStage){
   if(a.adx?.state==='Trending')pills.push({t:`ADX ${a.adx.value.toFixed(0)} Trending`,c:'ok'});
   else if(a.adx?.state==='Choppy')pills.push({t:'ADX Choppy',c:'bad'});
   if(a.stoch?.signal?.startsWith('40→50'))pills.push({t:'Stoch 40→50 ✓',c:'ok'});
-  else if(a.stoch?.signal?.startsWith('20→30'))pills.push({t:'Stoch 20→30',c:'mid'});
   if(a.stack?.count>=3)pills.push({t:`Support Stack ×${a.stack.count}`,c:'ok'});
   if(a.resStack?.count>=3)pills.push({t:`Resistance Stack ×${a.resStack.count}`,c:'bad'});
-  if(a.volC?.state==='Tight coil'||a.volC?.state==='Contracting')pills.push({t:'Vol Coiling',c:'mid'});
+  if(a.preBreak?.count>=1)pills.push({t:`Pre-Breakout ×${a.preBreak.count}`,c:a.preBreak.count>=2?'ok':'mid'});
+  if(a.m200&&a.close&&(a.stage===2||a.stage===4)){
+    if(a.stage===2)pills.push(a.close>a.m200?{t:'200 SMA ✓',c:'ok'}:{t:'Below 200 SMA',c:'mid'});
+    else pills.push(a.close<a.m200?{t:'200 SMA ✓',c:'bad'}:{t:'Above 200 SMA',c:'mid'});
+  }
   let note=a.stage===2&&a.sig?.includes('Buy')
     ?'Look for pullbacks to the rising 10/20 EMA on declining volume. Primary trend intact above 50 EMA.'
     :a.stage===2?'Stage 2 structure but signals mixed. Confirm price holds 20 EMA before adding.'
-    :a.stage===1?'"A stock in Stage 1 offers no reason for a trend trader to be involved." — Shannon'
+    :a.stage===1?'"The range-bound activity of a stage 1 stock offers no reason for a trend trader to be involved." — Shannon'
     :a.stage===3?'MAs flattening near highs — reduce, do not add.'
     :a.stage===4?'The "slope of hope." Rallies fail at declining MAs. Flat or short only.'
     :'Need more data for a clean Shannon read.';
   if(a.adx&&a.adx.value<20&&(a.stage===2||a.stage===4))
     note+=' ADX is still under 20 — the trend itself isn\'t confirmed yet, so weight this signal accordingly.';
-  if((a.stage===1||a.stage===3)&&a.volC&&(a.volC.state==='Tight coil'||a.volC.state==='Contracting'))
-    note+=' Range is contracting — per Shannon\'s stage cycle, contraction in Stage 1/3 tends to precede the next expansion. Worth watching for the breakout.';
+  if(a.stage===1&&a.preBreak?.count>=1)
+    note+=` Pre-breakout watch: ${a.preBreak.count} of 3 tells present (${a.preBreak.factors.join(', ')}) — per Shannon's "stalking the stock" guidance.`;
+  else if(a.stage===3&&a.volC&&(a.volC.state==='Tight coil'||a.volC.state==='Contracting'))
+    note+=' Range is contracting — per Shannon\'s stage cycle, contraction in Stage 3 tends to precede the next expansion (in this case, the decline). Worth watching for the breakdown.';
   if(a.stage===4&&a.resStack&&a.resStack.count>=2)
     note+=' Resistance is stacked overhead — reinforces the cap on any bounce attempt.';
   return`<div class="tf-section${tf==='daily'?' vis':''}" data-tf="${tf}">
@@ -1438,7 +1502,7 @@ function buildTFSection(a,tf,dStage,wStage){
   <div class="sub"><div class="slbl">Support Stack</div><div class="sval ${stackV[1]}">${stackV[0]}</div><div class="snot" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${stackV[2]}</div></div>
   <div class="sub"><div class="slbl">Resistance Stack</div><div class="sval ${resStackV[1]}">${resStackV[0]}</div><div class="snot" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${resStackV[2]}</div></div>
   <div class="sub"><div class="slbl">Volatility</div><div class="sval ${volV[1]}">${volV[0]}</div><div class="snot">${volV[2]}</div></div>
-  <div class="sub" style="grid-column:1/-1"><div class="slbl">Stage 2 Freshness</div><div class="sval ${freshV.cls}">${freshV.label}</div><div class="snot">${freshNote}</div></div>
+  <div class="sub" style="grid-column:1/-1"><div class="slbl">${summaryV.label}</div><div class="sval ${summaryV.cls}">${summaryV.val}</div><div class="snot">${summaryV.note}</div></div>
 </div>
 ${tradeHTML}
 <div class="expdr" onclick="this.closest('.card').classList.toggle('open')">
